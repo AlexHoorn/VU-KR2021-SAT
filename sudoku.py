@@ -1,4 +1,5 @@
-from typing import Generator, List, Tuple
+from typing import Iterator, List
+
 import numpy as np
 
 
@@ -14,11 +15,11 @@ class Sudoku:
 
         self.answers: List[int] = []
 
-    def __iter__(self) -> Generator[List]:
+    def __iter__(self) -> Iterator[List]:
         """Iterator that makes iterating over all clauses easy with e.g. `for clause in sudoku`.
 
         Yields:
-            Generator[List]: every clause in rules + constraints + answers.
+            Iterator[List]: every clause in rules + constraints + answers.
         """
         clauses = self.get_all_clauses()
         for c in clauses:
@@ -45,53 +46,62 @@ class Sudoku:
         """Return all clauses in the puzzle (rules + constraints + answers)."""
         return self.base_rules + self.constraints + self.answers
 
-    def check_satisfied(self) -> bool:
+    def get_satisfaction(self) -> bool:
         """Check if puzzle is satisfied with the given answers.
 
         Returns:
             bool: boolean stating True if satisfied.
         """
-        # Split values and whether they are negated
-        rules, negations = self._get_map(self.base_rules)
+        # This runs _get_clause_satisfaction for every clause in base_rules
+        satisfactions = list(map(self._get_clause_satisfaction, self.base_rules))
+        # Check if ALL clauses have returned True because these are joined by an AND
+        satisfied = np.all(satisfactions)
 
-        clauses_boolean = list(map(self._map_value, rules, negations))
-        clauses_boolean = list(map(np.any, clauses_boolean))
+        return satisfied
 
-        return np.all(clauses_boolean)
+    def _get_clause_satisfaction(self, clause: List) -> bool:
+        """Check for a single given clause whether it's satisfied."""
+        # Get the absolutes of the values, makes mapping them easier
+        values = np.abs(clause)
+        # Determine which have to be negated later
+        negations = np.array(clause) < 0
 
-    def _get_map(self, clauses) -> Tuple[List, List]:
-        """Split clauses into absolutes of variables and a mask whether they are negated"""
-        # TODO: This can be much faster
+        # Set values to true if they exist in the constraints or answers
+        values_bool = np.isin(values, self.constraints + self.answers)
+        # Negate the values with the negations array
+        values_bool = np.where(negations, ~values_bool, values_bool)
 
-        # Convert clauses to absolute values
-        values = [[abs(v) for v in c] for c in clauses]
-        # Determine which values have to be negated
-        negations = [[v < 0 for v in c] for c in clauses]
+        # Check if ANY in clause is True because a single clause is joined by OR
+        satisfied = np.any(values_bool)
 
-        return values, negations
-
-    def _map_value(self, values, negatives) -> List:
-        """"""
-        clause = np.isin(values, self.constraints + self.answers)
-        clause = np.where(negatives, ~clause, clause)
-
-        return clause
+        return satisfied
 
 
-def read_dimacs(filepath: str) -> List:
-    with open(filepath) as f:
+def read_dimacs(filepath: str) -> List[List[int]]:
+    """Read a DIMACS file.
+
+    Args:
+        filepath (str): path to where file is.
+
+    Returns:
+        List[np.ndarray]: list of clauses as numpy arrays.
+    """
+    with open(filepath, encoding="UTF-8") as f:
+        # Read the file and split by newlines into a list
         dimacs_lines = f.read().splitlines()
 
     clause_list = []
     for row in dimacs_lines:
         if row[0] in ("c", "p"):
+            # Currently does nothing if the line is a comment
             ...
 
         else:
-            row = row.rstrip(" 0")
-            clauses = row.split(" ")
-            clauses = [int(i) for i in clauses]
+            row = row.rstrip("0")  # Remove the trailing 0
+            row = row.strip()  # Remove leading and trailing spaces
+            clauses = row.split(" ")  # Split into statements
+            clauses_int = [int(i) for i in clauses]  # Convert to integers
 
-            clause_list.append(clauses)
+            clause_list.append(clauses_int)
 
     return clause_list
