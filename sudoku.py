@@ -15,7 +15,7 @@ class Sudoku:
 
         self.answers: List[int] = []
 
-    def __iter__(self) -> Iterator[List]:
+    def __iter__(self) -> Iterator[List[int]]:
         """Iterator that makes iterating over all clauses easy with e.g. `for clause in sudoku`.
 
         Yields:
@@ -25,7 +25,7 @@ class Sudoku:
         for c in clauses:
             yield c
 
-    def get_base_rules(self) -> List:
+    def get_base_rules(self) -> List[List[int]]:
         """Simply wraps read_dimacs with the path to the rules."""
         return read_dimacs(filepath="sudoku-rules.txt")
 
@@ -39,10 +39,10 @@ class Sudoku:
             self.answers.append(clause)
 
     def clear_answers(self) -> None:
-        """Empty list of answers."""
+        """Empties list of answers."""
         self.answers = []
 
-    def get_all_clauses(self) -> List:
+    def get_all_clauses(self) -> List[List[int]]:
         """Return all clauses in the puzzle (rules + constraints + answers)."""
         return self.base_rules + self.constraints + self.answers
 
@@ -59,7 +59,7 @@ class Sudoku:
 
         return satisfied
 
-    def _get_clause_satisfaction(self, clause: List) -> bool:
+    def _get_clause_satisfaction(self, clause: List[int]) -> bool:
         """Check for a single given clause whether it's satisfied."""
         # Get the absolutes of the values, makes mapping them easier
         values = np.abs(clause)
