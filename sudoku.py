@@ -1,36 +1,61 @@
 from typing import List
+import numpy as np
 
 
 class Sudoku:
-    def __init__(self) -> None:
+    def __init__(self, filename: str) -> None:
         self.base_rules = self.get_base_rules()
+        self.constraints = read_dimacs(filename=filename)
 
-    def get_base_rules(self) -> List:
-        
-        #function to read dimacs files
-        def read_dimacs(self) -> List:
-            my_txt='sudoku-example.txt'
-            with open(my_txt) as s:
-                my_d=s.readlines()
-            
-            sudo_list=[]    
-            for row in my_d:
-                row = row.rstrip(" 0\n")
-                row = row.split(" ")
-                sudo_list.append(row)
-            return sudo_list
-        
-        with open("sudoku-rules.txt") as f:
-            rules = f.readlines()
+        self.answers: List[int] = []
 
-        rule_clauses = []
-        for clause in rules:
-            if clause[0] in ("p", "c"):
-                ...
+    def get_base_rules(self, filename="sudoku-rules.txt") -> List:
+        return read_dimacs(filename=filename)
 
-            else:
-                clause = clause.rstrip(" 0\n")
-                clause = clause.split(" ")
-                rule_clauses.append(clause)
+    def add_answer(self, clause):
+        if clause not in self.constraints:
+            self.answers.append(clause)
 
-        return rule_clauses
+    def clear_answers(self):
+        self.answers = []
+
+    def get_all_clauses(self):
+        return self.base_rules + self.constraints + self.answers
+
+    def check_satisfied(self):
+        rules, negatives = self._get_map(self.base_rules)
+        clauses_boolean = list(map(self._map_value, rules, negatives))
+        clauses_boolean = list(map(np.any, clauses_boolean))
+
+        return np.all(clauses_boolean)
+
+    def _get_map(self, clauses):
+        values = [[abs(v) for v in c] for c in clauses]
+        negatives = [[v < 0 for v in c] for c in clauses]
+
+        return values, negatives
+
+    def _map_value(self, values, negatives):
+        clause = np.isin(values, self.constraints + self.answers)
+        clause = np.where(negatives, clause, ~clause)
+
+        return clause
+
+
+def read_dimacs(filename: str) -> List:
+    with open(filename) as f:
+        dimacs_lines = f.read().splitlines()
+
+    clause_list = []
+    for row in dimacs_lines:
+        if row[0] in ("c", "p"):
+            ...
+
+        else:
+            row = row.rstrip(" 0")
+            clauses = row.split(" ")
+            clauses = [int(i) for i in clauses]
+
+            clause_list.append(clauses)
+
+    return clause_list
