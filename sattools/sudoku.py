@@ -2,6 +2,8 @@ from typing import Iterator, List
 
 import numpy as np
 
+from .utils import CNFtype, read_dimacs
+
 
 class Sudoku:
     def __init__(self, filepath: str) -> None:
@@ -25,7 +27,7 @@ class Sudoku:
         for c in clauses:
             yield c
 
-    def get_base_rules(self) -> List[List[int]]:
+    def get_base_rules(self) -> CNFtype:
         """Simply wraps read_dimacs with the path to the rules."""
         return read_dimacs(filepath="sudoku-rules.txt")
 
@@ -42,7 +44,7 @@ class Sudoku:
         """Empties list of answers."""
         self.answers = []
 
-    def get_all_clauses(self) -> List[List[int]]:
+    def get_all_clauses(self) -> CNFtype:
         """Return all clauses in the puzzle (rules + constraints + answers)."""
         return self.base_rules + self.constraints + self.answers
 
@@ -76,32 +78,3 @@ class Sudoku:
 
         return satisfied
 
-
-def read_dimacs(filepath: str) -> List[List[int]]:
-    """Read a DIMACS file.
-
-    Args:
-        filepath (str): path to where file is.
-
-    Returns:
-        List[np.ndarray]: list of clauses as numpy arrays.
-    """
-    with open(filepath, encoding="UTF-8") as f:
-        # Read the file and split by newlines into a list
-        dimacs_lines = f.read().splitlines()
-
-    clause_list = []
-    for row in dimacs_lines:
-        if row[0] in ("c", "p"):
-            # Currently does nothing if the line is a comment
-            ...
-
-        else:
-            row = row.rstrip("0")  # Remove the trailing 0
-            row = row.strip()  # Remove leading and trailing spaces
-            clauses = row.split(" ")  # Split into statements
-            clauses_int = [int(i) for i in clauses]  # Convert to integers
-
-            clause_list.append(clauses_int)
-
-    return clause_list

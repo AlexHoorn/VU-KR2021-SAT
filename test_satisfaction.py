@@ -3,7 +3,7 @@
 
 # %%
 from pysat.solvers import Glucose3
-from sudoku import read_dimacs
+from sattools.sudoku import read_dimacs
 
 g = Glucose3()
 
@@ -22,7 +22,7 @@ with open("sudoku-example-answer.txt", "w") as f:
 
 
 # %%
-from sudoku import Sudoku
+from sattools.sudoku import Sudoku
 
 sudoku_answers = read_dimacs("sudoku-example-answer.txt")
 
