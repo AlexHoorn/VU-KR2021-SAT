@@ -1,5 +1,5 @@
-from typing import Any, List
 from itertools import chain
+from typing import Any, Iterable, List
 
 CNFtype = List[List[int]]
 
@@ -32,6 +32,12 @@ def read_dimacs(filepath: str) -> CNFtype:
             clause_list.append(clauses_int)
 
     return clause_list
+
+
+def write_dimacs(iterable: Iterable[Any], filepath: str):
+    with open(filepath, "w") as f:
+        for i in iterable:
+            f.write(f"{i} 0\n")
 
 
 def flatten_list(list_: List[List[Any]]) -> List[Any]:

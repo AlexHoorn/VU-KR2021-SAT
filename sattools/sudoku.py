@@ -1,8 +1,8 @@
-from typing import Iterator, List
+from typing import Iterator, List, Union
 
 import numpy as np
 
-from .utils import CNFtype, read_dimacs
+from .utils import CNFtype, flatten_list, read_dimacs
 
 
 class Sudoku:
@@ -31,14 +31,22 @@ class Sudoku:
         """Simply wraps read_dimacs with the path to the rules."""
         return read_dimacs(filepath="sudoku-rules.txt")
 
-    def add_answer(self, clause: int) -> None:
+    def add_answer(self, clauses: Union[List[int], int]) -> None:
         """Add answer to puzzle.
 
         Args:
             clause (int): int representing answer i.e. 135 row 1, column 3 and value 5.
         """
-        if clause not in self.constraints:
-            self.answers.append(clause)
+        if isinstance(clauses, int):
+            clauses = [[clauses]]
+
+        clauses = flatten_list(clauses)
+
+        for clause in clauses:
+            if clause not in self.constraints and -clause not in self.constraints:
+                self.answers.append(clause)
+            else:
+                print(f"{clause=} in constraints")
 
     def clear_answers(self) -> None:
         """Empties list of answers."""
@@ -61,6 +69,7 @@ class Sudoku:
 
         return satisfied
 
+    # TODO: This doesn't use negated answers yet
     def _get_clause_satisfaction(self, clause: List[int]) -> bool:
         """Check for a single given clause whether it's satisfied."""
         # Get the absolutes of the values, makes mapping them easier
@@ -77,4 +86,3 @@ class Sudoku:
         satisfied = np.any(values_bool)
 
         return satisfied
-
