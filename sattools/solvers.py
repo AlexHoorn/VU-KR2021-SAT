@@ -1,12 +1,12 @@
 from copy import deepcopy
-from typing import Iterable, List, Optional, Set
+from typing import Iterable, List, Set, Tuple
 
 import numpy as np
 
 from .utils import CNFtype, flatten_list
 
 
-class SolverBase:
+class Solver:
     def __init__(self, cnf: CNFtype, verbose=False) -> None:
         self.cnf = cnf
         self.verbose = verbose
@@ -38,23 +38,36 @@ class SolverBase:
         """Determine all unique literals"""
         return set(np.unique(flatten_list(cnf)))
 
+    @classmethod
+    def determine_pure_literals(cls, cnf: CNFtype) -> Set[int]:
+        """Determine all pure literals"""
+        unique_literals = cls.determine_literals(cnf)
+        # Keep a set of literals when their negation isn't present
+        # FYI: { } does a set comprehension
+        pure_literals = {ul for ul in unique_literals if -ul not in unique_literals}
+
+        return pure_literals
+
     @staticmethod
-    def determine_unit_clauses(cnf: CNFtype) -> List[int]:
-        """Return the pure literals in a cnf"""
+    def determine_unit_clauses(cnf: CNFtype) -> Set[int]:
+        """Return the unit clauses in a cnf"""
         # Count the amount of literals in every clause
         clause_lenghts = np.fromiter(map(len, cnf), dtype=np.int_)
         # Keep clauses with count == 1
         literals = np.array(cnf, dtype=np.object_)[clause_lenghts == 1]
         # Literals in now an array with lists of single clauses, flatten this
-        literals = flatten_list(literals)
+        literals = set(flatten_list(literals))
 
         return literals
 
-    @staticmethod
-    def remove_literal(cnf: CNFtype, literal: int):
+    @classmethod
+    def remove_literal(cls, cnf: CNFtype, literal: int):
+        # Copy the original to not overwrite any references
         cnf = deepcopy(cnf)
-        cnf = SolverBase.remove_clauses_with_literal(cnf, literal)
-        cnf = SolverBase.shorten_clauses_with_literal(cnf, -literal)
+        # Remove clauses with literal
+        cnf = cls.remove_clauses_with_literal(cnf, literal)
+        # Shorten clauses with negated literal
+        cnf = cls.shorten_clauses_with_literal(cnf, -literal)
 
         return cnf
 
@@ -68,49 +81,56 @@ class SolverBase:
         """Shorten clauses from cnf with given literal"""
         return [[c for c in clause if c != literal] for clause in cnf]
 
+    # NOTE: This doesn't implement the tautology rule
+    @classmethod
+    def simplify(cls, cnf: CNFtype) -> Tuple[CNFtype, Set[int]]:
+        """Remove unit clauses and pure literals, return new cnf and removed literals"""
+        # Determine unit clauses
+        unit_clauses = cls.determine_unit_clauses(cnf)
+        # Determine pure literals
+        pure_literals = cls.determine_pure_literals(cnf)
 
-class DPLL(SolverBase):
+        remove_literals = unit_clauses | pure_literals
+
+        # Remove pure literals from cnf
+        for literal in remove_literals:
+            cnf = cls.remove_literal(cnf, literal)
+
+        return cnf, remove_literals
+
+
+class DPLL(Solver):
     def __init__(self, cnf: CNFtype, verbose=False) -> None:
         super().__init__(cnf, verbose)
+
+        # Allows keeping count of backtracks and recursions
         self.backtrack_count = 0
+        self.recursion_count = 0
 
     def start(self) -> bool:
-        return self.backtrack(self.cnf, set(), None)
+        return self.backtrack(self.cnf, partial_assignment=set())
 
-    def backtrack(
-        self,
-        cnf: CNFtype,
-        partial_assignment: Set[int],
-        literal: Optional[int],
-    ) -> bool:
-        # Print some information every 100 backtracks
-        if self.verbose:
-            if self.backtrack_count % 100 == 0:
-                info_strings = [
-                    f"{self.backtrack_count = }",  # amount of backtracks
-                    f"{len(partial_assignment) = }",  # amount of assignments
-                    f"{len(cnf) = }",  # length of unsolved cnf
-                ]
-                print(", ".join(info_strings))
+    def backtrack(self, cnf: CNFtype, partial_assignment: Set[int],) -> bool:
+        # Print some information every so often
+        if self.verbose and self.recursion_count % 10 == 0:
+            info_strings = [
+                f"{self.recursion_count = }",  # amount of function recursions
+                f"{self.backtrack_count = }",  # amount of backtracks
+                f"{len(partial_assignment) = }",  # amount of assignments
+                f"{len(cnf) = }",  # length of unsolved cnf
+            ]
+            print(", ".join(info_strings))
 
-        # Keep the count of backtracks
-        self.backtrack_count += 1
-
-        # Determine unit clauses
-        unit_clauses = set(self.determine_unit_clauses(cnf))
-        # Remove pure literals from cnf
-        for unit_clause in unit_clauses:
-            cnf = self.remove_literal(cnf, unit_clause)
+        # Increase recursion count
+        self.recursion_count += 1
 
         # Copy partial assignments so parent doesn't get overwritten when changed
         partial_assignment = deepcopy(partial_assignment)
-        # Add unit clauses to partial assignment
-        partial_assignment = partial_assignment | unit_clauses
 
-        # Add selected literal to partial assignment and remove from cnf
-        if isinstance(literal, int):
-            partial_assignment.add(literal)
-            cnf = self.remove_literal(cnf, literal)
+        # Simplify cnf
+        cnf, removed_literals = self.simplify(cnf)
+        # Add removed literals from simplification
+        partial_assignment = partial_assignment | removed_literals
 
         # Finish if cnf contains no clauses: satisfied
         if len(cnf) == 0:
@@ -118,15 +138,23 @@ class DPLL(SolverBase):
             return True
 
         # Stop if cnf contains empty clauses: unsatisfied
-        elif np.isin(0, np.fromiter(map(len, cnf), dtype=np.int_)):
+        if np.isin(0, np.fromiter(map(len, cnf), dtype=np.int_)):
+            # Keep the count of backtracks
+            self.backtrack_count += 1
             return False
 
         # Pick a random literal without considering those already in partial assignment
         literal = int(np.random.choice(list(self.literals - partial_assignment)))
 
         # Try negation of the picked literal
-        if self.backtrack(cnf, partial_assignment, -literal):
-            return True
+        satisfied = self.backtrack(
+            self.remove_literal(cnf, -literal), partial_assignment | set([-literal])
+        )
 
-        # Try picked value
-        return self.backtrack(cnf, partial_assignment, literal)
+        if not satisfied:
+            # Try non-negated picked value
+            satisfied = self.backtrack(
+                self.remove_literal(cnf, literal), partial_assignment | set([literal])
+            )
+
+        return satisfied

@@ -2,7 +2,7 @@ from typing import Iterator, List, Union
 
 import numpy as np
 
-from .utils import CNFtype, flatten_list, read_dimacs
+from .utils import CNFtype, read_dimacs
 
 
 class Sudoku:
@@ -14,8 +14,7 @@ class Sudoku:
         """
         self.base_rules = self.get_base_rules()
         self.constraints = read_dimacs(filepath=filepath)
-
-        self.answers: List[int] = []
+        self.answers: List[List[int]] = []
 
     def __iter__(self) -> Iterator[List[int]]:
         """Iterator that makes iterating over all clauses easy with e.g. `for clause in sudoku`.
@@ -38,15 +37,14 @@ class Sudoku:
             clause (int): int representing answer i.e. 135 row 1, column 3 and value 5.
         """
         if isinstance(clauses, int):
-            clauses = [[clauses]]
-
-        clauses = flatten_list(clauses)
+            clauses = [clauses]
 
         for clause in clauses:
-            if clause not in self.constraints and -clause not in self.constraints:
-                self.answers.append(clause)
-            else:
-                print(f"{clause=} in constraints")
+            assert clause not in self.constraints, f"{clause} already in constraints."
+            assert -clause not in self.constraints, f"{-clause} already in constraints."
+
+            if clause >= 0:
+                self.answers.append([clause])
 
     def clear_answers(self) -> None:
         """Empties list of answers."""
@@ -56,21 +54,22 @@ class Sudoku:
         """Return all clauses in the puzzle (rules + constraints + answers)."""
         return self.base_rules + self.constraints + self.answers
 
-    def get_satisfaction(self) -> bool:
+    def get_satisfaction(self) -> np.bool_:
         """Check if puzzle is satisfied with the given answers.
 
         Returns:
             bool: boolean stating True if satisfied.
         """
         # This runs _get_clause_satisfaction for every clause in base_rules
-        satisfactions = list(map(self._get_clause_satisfaction, self.base_rules))
+        satisfactions = np.fromiter(
+            map(self._get_clause_satisfaction, self.base_rules), dtype=np.bool_
+        )
         # Check if ALL clauses have returned True because these are joined by an AND
         satisfied = np.all(satisfactions)
 
         return satisfied
 
-    # TODO: This doesn't use negated answers yet
-    def _get_clause_satisfaction(self, clause: List[int]) -> bool:
+    def _get_clause_satisfaction(self, clause: List[int]) -> np.bool_:
         """Check for a single given clause whether it's satisfied."""
         # Get the absolutes of the values, makes mapping them easier
         values = np.abs(clause)
