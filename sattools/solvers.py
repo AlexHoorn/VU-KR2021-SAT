@@ -13,7 +13,21 @@ class SolverBase:
 
         self.literals = self.determine_literals(cnf)
         self.satisfied = False
-        self.solution = []
+        self.solution: List[int] = []
+
+    def solve(self) -> None:
+        """Kick off solving algorithm"""
+        self.satisfied = self.start()
+
+        if self.verbose:
+            if self.satisfied:
+                print("Satisfied")
+            else:
+                print("Cannot satisfied")
+
+    def start(self) -> bool:
+        # IMPORTANT: Implement this function in subclass
+        raise NotImplementedError
 
     def set_solution(self, solution: Iterable[int]):
         """Set the solution"""
@@ -60,24 +74,13 @@ class DPLL(SolverBase):
         super().__init__(cnf, verbose)
         self.backtrack_count = 0
 
-    def solve(self) -> None:
-        """Kick off solving algorithm"""
-
-        if self.backtrack(self.cnf, set(), None):
-            self.satisfied = True
-        else:
-            self.satisfied = True
-
-        if self.verbose:
-            if self.satisfied:
-                print("Satisfied")
-            else:
-                print("Cannot satisfied")
+    def start(self) -> bool:
+        return self.backtrack(self.cnf, set(), None)
 
     def backtrack(
         self,
         cnf: CNFtype,
-        partial_assignment: Optional[Set[int]],
+        partial_assignment: Set[int],
         literal: Optional[int],
     ) -> bool:
         # Print some information every 100 backtracks
