@@ -19,7 +19,7 @@ end_time = time()
 duration = end_time - start_time
 
 if dpll.satisfied:
-    print(f"Solution length {len(dpll.solution) = }")
+    print(f"Solution length = {len(dpll.solution)}")
 
     write_dimacs(dpll.solution, "sudoku-example-answer-custom.txt")
     answers = flatten_list(read_dimacs("sudoku-example-answer-custom.txt"))

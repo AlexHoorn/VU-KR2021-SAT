@@ -43,3 +43,51 @@ def write_dimacs(iterable: Iterable[Any], filepath: str):
 def flatten_list(list_: List[List[Any]]) -> List[Any]:
     flattened = list(chain.from_iterable(list_))
     return flattened
+
+
+# Hey Alex, I tried to do it according to your structure
+# but oc feel free to change everything as you want 
+sudoku_collectiontype = List[List[str]]
+
+def read_collections(filepath: str, size = 9) -> sudoku_collectiontype:
+    """Read a collection of sudokus in *txt files.
+
+    Args:
+        filepath (str): path to where file is.
+        size (int): size of the sudoku, default 9x9
+
+    Returns:
+        a list of lists containing the dimacs rows as elements -> need another function to get them? 
+        or writing single DIMACS files?
+    """
+
+    with open(filepath, encoding="UTF-8") as f:
+        # Read the file and split by newlines into a list
+        single_sudokus = f.read().splitlines()
+
+    sudoku_collection = []
+
+    for row in single_sudokus:
+        
+        sudoku = [] 
+        # a list containing all starting positions in DIMACS as string
+
+        vals = list(row)
+        
+        # not sure wether its row by row or column by column
+        # doesnt really matter tho, its just a transposition
+        # here its row by row
+        for i in range(0, size):
+            for j in range(0, size):
+
+                if vals[i*9 + j] == '.':
+                    ...
+
+                else:
+                    sudoku.append(f"{i+1}{j+1}{vals[i*9 + j]} 0")
+
+        sudoku_collection.append(sudoku)
+
+    return sudoku_collection
+
+
