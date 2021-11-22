@@ -9,7 +9,7 @@ from sattools.utils import flatten_list, read_dimacs, write_dimacs
 s = Sudoku("sudoku-example.txt")
 
 cnf = s.get_all_clauses()
-dpll = DPLL(cnf, verbose=True, selection="random")
+dpll = DPLL(cnf, verbose=True, heuristic="weighted")
 
 print("Solving cnf")
 start_time = time()

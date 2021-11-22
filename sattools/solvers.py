@@ -47,6 +47,15 @@ class Solver:
 
         return random_literal
 
+    @classmethod
+    def get_literal_random_weighted(cls, cnf: CNFtype) -> int:
+        """Randomly select a single literal. This is weighted, i.e.
+        variable that occurs more often has a higher chance."""
+        literals = flatten_list(cnf)
+        random_literal = random.choice(literals)
+
+        return random_literal
+
     # TODO: This is not the exact implementation of GSAT but represents roughly how it works
     @classmethod
     def get_literal_gsat(cls, cnf: CNFtype) -> int:
@@ -127,7 +136,7 @@ class DPLL(Solver):
     def __init__(self, cnf: CNFtype, verbose=False, heuristic="random") -> None:
         super().__init__(cnf, verbose=verbose)
 
-        heuristic_techniques = ["random", "gsat"]
+        heuristic_techniques = ["random", "weighted", "gsat"]
         assert (
             heuristic in heuristic_techniques
         ), f"heuristic must be one of {heuristic_techniques}"
@@ -174,8 +183,9 @@ class DPLL(Solver):
             return False
 
         if self.heuristic == "random":
-            # Pick a random literal from the cnf
             literal = self.get_literal_random(cnf)
+        elif self.heuristic == "weighted":
+            literal = self.get_literal_random_weighted(cnf)
         elif self.heuristic == "gsat":
             literal = self.get_literal_gsat(cnf)
 
