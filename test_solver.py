@@ -1,15 +1,15 @@
 # %%
 from collections import Counter
+from time import time
 
 from sattools.solvers import DPLL
 from sattools.sudoku import Sudoku
 from sattools.utils import flatten_list, read_dimacs, write_dimacs
-from time import time
 
 s = Sudoku("sudoku-example.txt")
 
 cnf = s.get_all_clauses()
-dpll = DPLL(cnf, verbose=True)
+dpll = DPLL(cnf, verbose=True, selection="random")
 
 print("Solving cnf")
 start_time = time()
@@ -26,9 +26,7 @@ if dpll.satisfied:
 
     s.add_answer(answers)
 
-    print(
-        "Sudoku satisfied =", s.get_satisfaction()
-    )  # this function seems broken, keep that in mind
+    print("Sudoku satisfied =", s.get_satisfaction())
 
 else:
     print("Couldn't find satisfaction")

@@ -1,7 +1,6 @@
 from typing import Iterator, List, Union
 
-import numpy as np
-
+from .solvers import Solver
 from .utils import CNFtype, read_dimacs
 
 
@@ -43,8 +42,7 @@ class Sudoku:
             assert clause not in self.constraints, f"{clause} already in constraints."
             assert -clause not in self.constraints, f"{-clause} already in constraints."
 
-            if clause >= 0:
-                self.answers.append([clause])
+            self.answers.append([clause])
 
     def clear_answers(self) -> None:
         """Empties list of answers."""
@@ -54,34 +52,12 @@ class Sudoku:
         """Return all clauses in the puzzle (rules + constraints + answers)."""
         return self.base_rules + self.constraints + self.answers
 
-    def get_satisfaction(self) -> np.bool_:
-        """Check if puzzle is satisfied with the given answers.
+    def get_satisfaction(self) -> bool:
+        """Check if puzzle is satisfied with the given answers."""
+        cnf = self.get_all_clauses()
+        cnf, _ = Solver.simplify(cnf)
+        satisfied = Solver.check_satisfaction(cnf)
 
-        Returns:
-            bool: boolean stating True if satisfied.
-        """
-        # This runs _get_clause_satisfaction for every clause in base_rules
-        satisfactions = np.fromiter(
-            map(self._get_clause_satisfaction, self.base_rules), dtype=np.bool_
-        )
-        # Check if ALL clauses have returned True because these are joined by an AND
-        satisfied = np.all(satisfactions)
-
-        return satisfied
-
-    def _get_clause_satisfaction(self, clause: List[int]) -> np.bool_:
-        """Check for a single given clause whether it's satisfied."""
-        # Get the absolutes of the values, makes mapping them easier
-        values = np.abs(clause)
-        # Determine which have to be negated later
-        negations = np.array(clause) < 0
-
-        # Set values to true if they exist in the constraints or answers
-        values_bool = np.isin(values, self.constraints + self.answers)
-        # Negate the values with the negations array
-        values_bool = np.where(negations, ~values_bool, values_bool)
-
-        # Check if ANY in clause is True because a single clause is joined by OR
-        satisfied = np.any(values_bool)
-
-        return satisfied
+        # check_satisfaction(...) returns either True is satisfied, False if not satisfiable or None
+        # if it can be further reduced. This makes sure either simply True or False is returned
+        return bool(satisfied)

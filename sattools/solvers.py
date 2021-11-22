@@ -1,5 +1,6 @@
+import random
 from copy import deepcopy
-from typing import Iterable, List, Set, Tuple
+from typing import Counter, Iterable, List, Set, Tuple, Union
 
 import numpy as np
 
@@ -26,7 +27,7 @@ class Solver:
                 print("Cannot satisfied")
 
     def start(self) -> bool:
-        # IMPORTANT: Implement this function in subclass
+        # NOTE: Implement this function in subclass
         raise NotImplementedError
 
     def set_solution(self, solution: Iterable[int]):
@@ -36,12 +37,30 @@ class Solver:
     @staticmethod
     def determine_literals(cnf: CNFtype) -> Set[int]:
         """Determine all unique literals"""
-        return set(np.unique(flatten_list(cnf)))
+        return set(abs(literal) for literal in flatten_list(cnf))
+
+    @classmethod
+    def get_literal_random(cls, cnf: CNFtype) -> int:
+        """Randomly select a single literal"""
+        literals = cls.determine_literals(cnf)
+        random_literal = random.choice(list(literals))
+
+        return random_literal
+
+    # TODO: This is not the exact implementation of GSAT but represents roughly how it works
+    @classmethod
+    def get_literal_gsat(cls, cnf: CNFtype) -> int:
+        units = flatten_list(cnf)
+        count = Counter(units)
+        most_common = [unit for unit, _ in count.most_common()]
+        literal = random.choice(most_common)
+
+        return literal
 
     @classmethod
     def determine_pure_literals(cls, cnf: CNFtype) -> Set[int]:
         """Determine all pure literals"""
-        unique_literals = cls.determine_literals(cnf)
+        unique_literals = set(flatten_list(cnf))
         # Keep a set of literals when their negation isn't present
         # FYI: { } does a set comprehension
         pure_literals = {ul for ul in unique_literals if -ul not in unique_literals}
@@ -51,14 +70,7 @@ class Solver:
     @staticmethod
     def determine_unit_clauses(cnf: CNFtype) -> Set[int]:
         """Return the unit clauses in a cnf"""
-        # Count the amount of literals in every clause
-        clause_lenghts = np.fromiter(map(len, cnf), dtype=np.int_)
-        # Keep clauses with count == 1
-        literals = np.array(cnf, dtype=np.object_)[clause_lenghts == 1]
-        # Literals in now an array with lists of single clauses, flatten this
-        literals = set(flatten_list(literals))
-
-        return literals
+        return {clause[0] for clause in cnf if len(clause) == 1}
 
     @classmethod
     def remove_literal(cls, cnf: CNFtype, literal: int):
@@ -98,16 +110,34 @@ class Solver:
 
         return cnf, remove_literals
 
+    @staticmethod
+    def check_satisfaction(cnf: CNFtype) -> Union[bool, None]:
+        # Satisfied is CNF contains no clauses
+        if len(cnf) == 0:
+            return True
+
+        # Unsatisfied if CNF contains empty clauses
+        if np.isin(0, np.fromiter(map(len, cnf), dtype=np.int_)):
+            return False
+
+        return None
+
 
 class DPLL(Solver):
-    def __init__(self, cnf: CNFtype, verbose=False) -> None:
-        super().__init__(cnf, verbose)
+    def __init__(self, cnf: CNFtype, verbose=False, selection="random") -> None:
+        super().__init__(cnf, verbose=verbose)
 
+        selection_techniques = ["random", "gsat"]
+        assert (
+            selection in selection_techniques
+        ), f"selection must be one of {selection_techniques}"
+        self.selection = selection
+
+    def start(self) -> bool:
         # Allows keeping count of backtracks and recursions
         self.backtrack_count = 0
         self.recursion_count = 0
 
-    def start(self) -> bool:
         return self.backtrack(self.cnf, partial_assignment=set())
 
     def backtrack(self, cnf: CNFtype, partial_assignment: Set[int],) -> bool:
@@ -143,8 +173,11 @@ class DPLL(Solver):
             self.backtrack_count += 1
             return False
 
-        # Pick a random literal without considering those already in partial assignment
-        literal = int(np.random.choice(list(self.literals - partial_assignment)))
+        if self.selection == "random":
+            # Pick a random literal from the cnf
+            literal = self.get_literal_random(cnf)
+        elif self.selection == "gsat":
+            literal = self.get_literal_gsat(cnf)
 
         # Try negation of the picked literal
         satisfied = self.backtrack(
