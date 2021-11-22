@@ -124,14 +124,14 @@ class Solver:
 
 
 class DPLL(Solver):
-    def __init__(self, cnf: CNFtype, verbose=False, selection="random") -> None:
+    def __init__(self, cnf: CNFtype, verbose=False, heuristic="random") -> None:
         super().__init__(cnf, verbose=verbose)
 
-        selection_techniques = ["random", "gsat"]
+        heuristic_techniques = ["random", "gsat"]
         assert (
-            selection in selection_techniques
-        ), f"selection must be one of {selection_techniques}"
-        self.selection = selection
+            heuristic in heuristic_techniques
+        ), f"heuristic must be one of {heuristic_techniques}"
+        self.heuristic = heuristic
 
     def start(self) -> bool:
         # Allows keeping count of backtracks and recursions
@@ -173,10 +173,10 @@ class DPLL(Solver):
             self.backtrack_count += 1
             return False
 
-        if self.selection == "random":
+        if self.heuristic == "random":
             # Pick a random literal from the cnf
             literal = self.get_literal_random(cnf)
-        elif self.selection == "gsat":
+        elif self.heuristic == "gsat":
             literal = self.get_literal_gsat(cnf)
 
         # Try negation of the picked literal
