@@ -62,7 +62,7 @@ class Solver:
 
     # TODO: This is not the exact implementation of GSAT but represents roughly how it works
     @classmethod
-    def get_literal_gsat(cls, cnf: CNFtype) -> int:
+    def get_literal_greedy(cls, cnf: CNFtype) -> int:
         units = flatten_list(cnf)
         count = Counter(units)
         most_common = [unit for unit, _ in count.most_common()]
@@ -140,7 +140,7 @@ class DPLL(Solver):
     def __init__(self, cnf: CNFtype, verbose=False, heuristic="random") -> None:
         super().__init__(cnf, verbose=verbose)
 
-        heuristic_techniques = ["random", "weighted", "gsat"]
+        heuristic_techniques = ["random", "weighted", "greedy"]
         assert (
             heuristic in heuristic_techniques
         ), f"heuristic must be one of {heuristic_techniques}"
@@ -190,8 +190,8 @@ class DPLL(Solver):
             literal = self.get_literal_random(cnf)
         elif self.heuristic == "weighted":
             literal = self.get_literal_random_weighted(cnf)
-        elif self.heuristic == "gsat":
-            literal = self.get_literal_gsat(cnf)
+        elif self.heuristic == "greedy":
+            literal = self.get_literal_greedy(cnf)
 
         # Try negation of the picked literal
         satisfied = self.backtrack(
