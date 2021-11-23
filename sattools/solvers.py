@@ -1,11 +1,12 @@
 import random
-from copy import deepcopy
+from copy import copy
 from typing import Counter, Iterable, List, Set, Tuple, Union
 
 import numpy as np
 
 from .utils import CNFtype, flatten_list
 from time import time
+
 
 class Solver:
     def __init__(self, cnf: CNFtype, verbose=False) -> None:
@@ -87,8 +88,6 @@ class Solver:
 
     @classmethod
     def remove_literal(cls, cnf: CNFtype, literal: int):
-        # Copy the original to not overwrite any references
-        cnf = deepcopy(cnf)
         # Remove clauses with literal
         cnf = cls.remove_clauses_with_literal(cnf, literal)
         # Shorten clauses with negated literal
@@ -166,9 +165,6 @@ class DPLL(Solver):
 
         # Increase propagation count
         self.propagation_count += 1
-
-        # Copy partial assignments so parent doesn't get overwritten when changed
-        partial_assignment = deepcopy(partial_assignment)
 
         # Simplify cnf
         cnf, removed_literals = self.simplify(cnf)
