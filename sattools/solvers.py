@@ -5,7 +5,7 @@ from typing import Counter, Iterable, List, Set, Tuple, Union
 import numpy as np
 
 from .utils import CNFtype, flatten_list
-
+from time import time
 
 class Solver:
     def __init__(self, cnf: CNFtype, verbose=False) -> None:
@@ -18,7 +18,11 @@ class Solver:
 
     def solve(self) -> None:
         """Kick off solving algorithm"""
+        duration = time()
         self.satisfied = self.start()
+        duration = time() - duration
+
+        self.solve_duration = duration
 
         if self.verbose:
             if self.satisfied:
@@ -143,25 +147,25 @@ class DPLL(Solver):
         self.heuristic = heuristic
 
     def start(self) -> bool:
-        # Allows keeping count of backtracks and recursions
+        # Allows keeping count of backtracks and propagations
         self.backtrack_count = 0
-        self.recursion_count = 0
+        self.propagation_count = 0
 
         return self.backtrack(self.cnf, partial_assignment=set())
 
     def backtrack(self, cnf: CNFtype, partial_assignment: Set[int],) -> bool:
         # Print some information every so often
-        if self.verbose and self.recursion_count % 10 == 0:
+        if self.verbose and self.propagation_count % 10 == 0:
             info_strings = [
-                f"{self.recursion_count = }",  # amount of function recursions
+                f"{self.propagation_count = }",  # amount of function propagations
                 f"{self.backtrack_count = }",  # amount of backtracks
                 f"{len(partial_assignment) = }",  # amount of assignments
                 f"{len(cnf) = }",  # length of unsolved cnf
             ]
             print(", ".join(info_strings))
 
-        # Increase recursion count
-        self.recursion_count += 1
+        # Increase propagation count
+        self.propagation_count += 1
 
         # Copy partial assignments so parent doesn't get overwritten when changed
         partial_assignment = deepcopy(partial_assignment)

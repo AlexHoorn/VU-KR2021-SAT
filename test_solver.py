@@ -1,6 +1,5 @@
 # %%
 from collections import Counter
-from time import time
 
 from sattools.solvers import DPLL
 from sattools.sudoku import Sudoku
@@ -12,11 +11,7 @@ cnf = s.get_all_clauses()
 dpll = DPLL(cnf, verbose=True, heuristic="weighted")
 
 print("Solving cnf")
-start_time = time()
 dpll.solve()
-end_time = time()
-
-duration = end_time - start_time
 
 if dpll.satisfied:
     print(f"Solution length = {len(dpll.solution)}")
@@ -32,7 +27,7 @@ else:
     print("Couldn't find satisfaction")
 
 print(
-    f"Backtracks = {dpll.backtrack_count}, recursions = {dpll.recursion_count}, {duration = :.2f}s"
+    f"Backtracks = {dpll.backtrack_count}, propagations = {dpll.propagation_count}, {dpll.solve_duration = :.2f}s"
 )
 
 answers = [a for a in answers if a >= 0]

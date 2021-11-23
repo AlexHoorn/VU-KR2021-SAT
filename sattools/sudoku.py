@@ -1,3 +1,4 @@
+from os import path
 from typing import Iterator, List, Union
 
 from .solvers import Solver
@@ -5,36 +6,34 @@ from .utils import CNFtype, read_dimacs
 
 
 class Sudoku:
-    def __init__(self, filepath: str) -> None:
-        """Implements the Sudoku puzzle.
+    def __init__(self, sudoku: Union[str, CNFtype], rules="9x9") -> None:
+        """Implements the Sudoku puzzle."""
+        self.base_rules = read_dimacs(filepath=self.get_rules_filepath(rules))
 
-        Args:
-            filepath (str): string of the filepath of Sudoku in DIMACS.
-        """
-        self.base_rules = self.get_base_rules()
-        self.constraints = read_dimacs(filepath=filepath)
-        self.answers: List[List[int]] = []
+        if isinstance(sudoku, str):
+            self.constraints = read_dimacs(filepath=sudoku)
+        elif isinstance(sudoku, list):
+            self.constraints = sudoku
+
+        self.answers: CNFtype = []
+
+        self.validate_clauses()
 
     def __iter__(self) -> Iterator[List[int]]:
-        """Iterator that makes iterating over all clauses easy with e.g. `for clause in sudoku`.
-
-        Yields:
-            Iterator[List]: every clause in rules + constraints + answers.
-        """
+        """Iterator that makes iterating over all clauses easy with e.g. `for clause in sudoku`."""
         clauses = self.get_all_clauses()
         for c in clauses:
             yield c
 
-    def get_base_rules(self) -> CNFtype:
-        """Simply wraps read_dimacs with the path to the rules."""
-        return read_dimacs(filepath="sudoku-rules.txt")
+    def __getitem__(self, idx):
+        return self.get_all_clauses()[idx]
+
+    def get_rules_filepath(self, rules: str) -> str:
+        filepath = path.join(path.dirname(__file__), "sudoku_rules", f"{rules}.txt")
+        return filepath
 
     def add_answer(self, clauses: Union[List[int], int]) -> None:
-        """Add answer to puzzle.
-
-        Args:
-            clause (int): int representing answer i.e. 135 row 1, column 3 and value 5.
-        """
+        """Add answer to puzzle."""
         if isinstance(clauses, int):
             clauses = [clauses]
 
@@ -61,3 +60,14 @@ class Sudoku:
         # check_satisfaction(...) returns either True is satisfied, False if not satisfiable or None
         # if it can be further reduced. This makes sure either simply True or False is returned
         return bool(satisfied)
+
+    def validate_clauses(self):
+        clauses = self.get_all_clauses()
+        for clause in clauses:
+            assert isinstance(
+                clause, list
+            ), f"found clause {clause} with type {type(clause)}"
+            for unit in clause:
+                assert isinstance(
+                    unit, int
+                ), f"found unit {unit} with type {type(unit)}"
