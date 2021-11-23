@@ -18,11 +18,17 @@ def main(collection: str, heuristic: str, grid: int):
         DPLL(sudoku.get_all_clauses(), heuristic=heuristic) for sudoku in sudokus
     ]
 
+    stats_collection = []
+    n_solvers = len(solvers)
     with Pool() as pool:
         print(f"Solving {len(solvers)} sudokus with {cpu_count()} threads")
-        stats = list(pool.map(solve_sudoku, solvers))
+        # stats = list(pool.map(solve_sudoku, solvers))
 
-    dataframe = pd.DataFrame(stats)
+        for i, stats in enumerate(pool.imap_unordered(solve_sudoku, solvers)):
+            stats_collection.append(stats)
+            print(stats, f"{i}/{n_solvers}")
+
+    dataframe = pd.DataFrame(stats_collection)
     filename, _ = path.splitext(path.basename(collection))
     dataframe.to_csv(f"experiments/{grid}_{heuristic}_{filename}.csv")
 
@@ -35,7 +41,6 @@ def solve_sudoku(dpll: DPLL):
         duration=round(dpll.solve_duration, 2),
         satisfied=dpll.satisfied,
     )
-    print(stats)
     return stats
 
 
