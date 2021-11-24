@@ -1,5 +1,4 @@
 import random
-from copy import copy
 from typing import Counter, Iterable, List, Set, Tuple, Union
 
 import numpy as np
@@ -57,6 +56,16 @@ class Solver:
         """Randomly select a single literal. This is weighted, i.e.
         variable that occurs more often has a higher chance."""
         literals = flatten_list(cnf)
+        random_literal = random.choice(literals)
+
+        return random_literal
+
+    @classmethod
+    def get_literal_random_weighted_abs(cls, cnf: CNFtype) -> int:
+        """Randomly select a non-negated single literal. This is weighted, i.e.
+        variable that occurs more often has a higher chance."""
+        literals = flatten_list(cnf)
+        literals = [abs(literal) for literal in literals]
         random_literal = random.choice(literals)
 
         return random_literal
@@ -139,7 +148,7 @@ class DPLL(Solver):
     def __init__(self, cnf: CNFtype, verbose=False, heuristic="random") -> None:
         super().__init__(cnf, verbose=verbose)
 
-        heuristic_techniques = ["random", "weighted", "greedy"]
+        heuristic_techniques = ["random", "weighted", "weighted_abs", "greedy"]
         assert (
             heuristic in heuristic_techniques
         ), f"heuristic must be one of {heuristic_techniques}"
@@ -156,10 +165,10 @@ class DPLL(Solver):
         # Print some information every so often
         if self.verbose and self.propagation_count % 10 == 0:
             info_strings = [
-                f"{self.propagation_count = }",  # amount of function propagations
-                f"{self.backtrack_count = }",  # amount of backtracks
-                f"{len(partial_assignment) = }",  # amount of assignments
-                f"{len(cnf) = }",  # length of unsolved cnf
+                f"{self.propagation_count:5} propagations",  # amount of function propagations
+                f"{self.backtrack_count:5} backtracks",  # amount of backtracks
+                f"{len(partial_assignment):5} assignment size",  # amount of assignments
+                f"{len(cnf):5} cnf size",  # length of unsolved cnf
             ]
             print(", ".join(info_strings))
 
@@ -186,6 +195,8 @@ class DPLL(Solver):
             literal = self.get_literal_random(cnf)
         elif self.heuristic == "weighted":
             literal = self.get_literal_random_weighted(cnf)
+        elif self.heuristic == "weighted_abs":
+            self.literals = self.get_literal_random_weighted_abs(cnf)
         elif self.heuristic == "greedy":
             literal = self.get_literal_greedy(cnf)
 

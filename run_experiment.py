@@ -26,7 +26,7 @@ def main(collection: str, heuristic: str, grid: int):
 
         for i, stats in enumerate(pool.imap_unordered(solve_sudoku, solvers)):
             stats_collection.append(stats)
-            print(stats, f"{i}/{n_solvers}")
+            print(stats, f"{i+1}/{n_solvers}")
 
     dataframe = pd.DataFrame(stats_collection)
     filename, _ = path.splitext(path.basename(collection))
@@ -36,10 +36,14 @@ def main(collection: str, heuristic: str, grid: int):
 def solve_sudoku(dpll: DPLL):
     dpll.solve()
     stats = dict(
-        backtracks=dpll.backtrack_count,
-        propagations=dpll.propagation_count,
-        duration=round(dpll.solve_duration, 2),
-        satisfied=dpll.satisfied,
+        backtracks=dpll.backtrack_count,  # n backtracks
+        propagations=dpll.propagation_count,  # n propagations
+        duration=round(dpll.solve_duration, 2),  # duration in seconds
+        constraint_size=len(
+            dpll.determine_unit_clauses(dpll.cnf)
+        ),  # size of original sudoku
+        assignment_size=len(dpll.solution),  # size of final assignment
+        satisfied=dpll.satisfied,  # true or false if satisfied
     )
     return stats
 

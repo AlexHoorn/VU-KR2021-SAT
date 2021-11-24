@@ -1,6 +1,5 @@
 from itertools import chain
-from os import mkdir, pathsep, path, write
-from posixpath import dirname
+from os import mkdir, path
 from typing import Any, Iterable, List
 
 CNFtype = List[List[int]]
@@ -73,8 +72,8 @@ def read_collections(filepath: str, size=9, write=False) -> CNFtype:
         write_dir = filepath.split(".")[0]
         try:
             mkdir(write_dir)
-        except:
-            ...
+        except FileExistsError:
+            pass
 
     for num, row in enumerate(single_sudokus):
 
