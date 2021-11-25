@@ -93,7 +93,6 @@ class Solver:
     def get_literal_jw(cls, cnf: CNFtype) -> int:
         counter = {}
         for clause in cnf:
-            # check for one/two sided
             for literal in clause:
                 if literal in counter:
                     counter[literal] += 2 ** -len(clause)
@@ -108,7 +107,6 @@ class Solver:
     def get_literal_jwtwo(cls, cnf: CNFtype) -> int:
         counter = {}
         for clause in cnf:
-            # check for one/two sided
             clause = [abs(literal) for literal in clause]
 
             for literal in clause:
