@@ -80,6 +80,69 @@ class Solver:
 
         return literal
 
+     # TODO: This is not the exact implementation of GSAT but represents roughly how it works
+    @classmethod
+    def get_literal_greedy(cls, cnf: CNFtype) -> int:
+        units = flatten_list(cnf)
+        count = Counter(units)
+        most_common = [unit for unit, _ in count.most_common()]
+        literal = random.choice(most_common)
+
+        return literal
+
+    # greatest individual sum
+    @classmethod
+    def get_literal_dlis(cls, cnf: CNFtype) -> int:
+        units = flatten_list(cnf)
+        count = Counter(units)
+        return count.most_common()[0][0]
+
+    # greatest combined sum
+    @classmethod
+    def get_literal_dlcs(cls, cnf: CNFtype) -> int:
+        units = flatten_list(cnf)
+        units_abs = [abs(unit) for unit in units]
+        largest_sum = Counter(units_abs).most_common()[0][0]
+
+        if units.count(largest_sum) > units.count(largest_sum*-1):
+            return largest_sum
+        else:
+            return largest_sum*-1
+
+    # jeroslaw wang, one and two sided
+    @classmethod
+    def get_literal_JW(cls, cnf: CNFtype, two_sided = False) -> int:
+        """ set two_sided = True for two sided JW heuristic"""
+
+        counter = {}
+        for clause in cnf:
+
+            # check for one/two sided
+            if (two_sided): 
+                clause = [abs(literal) for literal in clause]
+
+            for literal in clause:
+                if literal in counter:
+                    counter[literal] += 2 ** -len(clause)
+                else:
+                    counter[literal] = 2 ** -len(clause)
+
+        # for two_sided we know only which variable 
+        if two_sided:
+            max_var = max(counter, key=counter.get)
+            counter = {max_var: 0, max_var*-1: 0}
+            
+            for clause in cnf:
+                if max_var in clause:
+                    counter[max_var] += 2 ** -len(clause)
+                if max_var*-1 in clause:
+                    counter[max_var*-1] += 2 ** -len(clause)
+            
+            return max(counter, key=counter.get)
+
+        else: 
+            return max(counter, key=counter.get)
+        
     @classmethod
     def determine_pure_literals(cls, cnf: CNFtype) -> Set[int]:
         """Determine all pure literals"""
@@ -89,7 +152,7 @@ class Solver:
         pure_literals = {ul for ul in unique_literals if -ul not in unique_literals}
 
         return pure_literals
-
+    
     @staticmethod
     def determine_unit_clauses(cnf: CNFtype) -> Set[int]:
         """Return the unit clauses in a cnf"""
