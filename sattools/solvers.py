@@ -262,6 +262,14 @@ class DPLL(Solver):
             self.literals = self.get_literal_random_weighted_abs(cnf)
         elif self.heuristic == "greedy":
             literal = self.get_literal_greedy(cnf)
+        elif self.heuristic == "dlis":
+            self.literals == self.get_literal_dlis(cnf)
+        elif self.heuristic == "dlcs":
+            self.literals == self.get_literal_dlcs(cnf)        
+        elif self.heuristic == "jw_one_sided":
+            self.literals == self.get_literal_JW(cnf)
+        elif self.heuristic == "jw_two_sided":
+            self.literals == self.get_literal_JW(cnf, two_sided=True)
 
         # Try negation of the picked literal
         satisfied = self.backtrack(
