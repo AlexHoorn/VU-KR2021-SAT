@@ -88,17 +88,31 @@ class Solver:
 
         return literal * -1
 
-    # jeroslaw wang, one and two sided
+    # jeroslaw wang one-sided
     @classmethod
-    def get_literal_jw(cls, cnf: CNFtype, two_sided=False) -> int:
+    def get_literal_jw(cls, cnf: CNFtype) -> int:
+        """ set two_sided = True for two sided JW heuristic"""
+        counter = {}
+        for clause in cnf:
+            # check for one/two sided
+            for literal in clause:
+                if literal in counter:
+                    counter[literal] += 2 ** -len(clause)
+                else:
+                    counter[literal] = 2 ** -len(clause)
+
+
+        return max(counter, key=counter.get)
+
+    # Jeroslaw Wang two-sided
+    @classmethod
+    def get_literal_jwtwo(cls, cnf: CNFtype) -> int:
         """ set two_sided = True for two sided JW heuristic"""
 
         counter = {}
         for clause in cnf:
-
             # check for one/two sided
-            if two_sided:
-                clause = [abs(literal) for literal in clause]
+            clause = [abs(literal) for literal in clause]
 
             for literal in clause:
                 if literal in counter:
@@ -107,23 +121,19 @@ class Solver:
                     counter[literal] = 2 ** -len(clause)
 
         # for two_sided we know only which variable
-        if two_sided:
-            max_var = max(counter, key=counter.get)
-            counter = {max_var: 0, max_var * -1: 0}
+        max_var = max(counter, key=counter.get)
+        counter = {max_var: 0, max_var * -1: 0}
 
-            for clause in cnf:
-                if max_var in clause:
-                    counter[max_var] += 2 ** -len(clause)
-                if max_var * -1 in clause:
-                    counter[max_var * -1] += 2 ** -len(clause)
+        for clause in cnf:
+            if max_var in clause:
+                counter[max_var] += 2 ** -len(clause)
+            if max_var * -1 in clause:
+                counter[max_var * -1] += 2 ** -len(clause)
 
-            return max(counter, key=counter.get)
+        return max(counter, key=counter.get)
 
-        else:
-            return max(counter, key=counter.get)
-
-    @classmethod
-    def determine_pure_literals(cls, cnf: CNFtype) -> Set[int]:
+    @staticmethod
+    def determine_pure_literals(cnf: CNFtype) -> Set[int]:
         """Determine all pure literals"""
         unique_literals = set(flatten_list(cnf))
         # Keep a set of literals when their negation isn't present
@@ -194,8 +204,7 @@ class DPLL(Solver):
 
         # To instantaneously triple the options offered a post action for every heuristic is possible
         # i.e. _neg makes sure the chosen literal is negated, _pos the opposite
-        # TODO: JW Double sided
-        heuristics = ["random", "weighted", "dlis", "dlcs", "jw"]
+        heuristics = ["random", "weighted", "dlis", "dlcs", "jw", "jwtwo"]
         heuristics_neg = [f"{h}_neg" for h in heuristics]
         heuristics_pos = [f"{h}_pos" for h in heuristics]
 
