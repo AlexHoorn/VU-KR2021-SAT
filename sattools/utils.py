@@ -88,7 +88,29 @@ def read_collections(filepath: str, size=9, write=False) -> CNFtype:
                     ...
 
                 else:
-                    sudoku.append([int(f"{i+1}{j+1}{vals[i*size + j]}")])
+
+                    if size == 16:
+
+                        if vals[i * size + j] in "ABCDEFG":
+                            if vals[i * size + j] == "A":
+                                vals[i * size + j] = "10"
+                            elif vals[i * size + j] == "B":
+                                vals[i * size + j] = "11"
+                            elif vals[i * size + j] == "C":
+                                vals[i * size + j] = "12"
+                            elif vals[i * size + j] == "D":
+                                vals[i * size + j] = "13"
+                            elif vals[i * size + j] == "E":
+                                vals[i * size + j] = "14"
+                            elif vals[i * size + j] == "F":
+                                vals[i * size + j] = "15"
+                            elif vals[i * size + j] == "G":
+                                vals[i * size + j] = "16"
+
+                        sudoku.append([int((i+1)*289 + (j+1)*17 + int(vals[i*size + j]))])
+
+                    else:
+                        sudoku.append([int(f"{i+1}{j+1}{vals[i*size + j]}")])
 
         sudoku_collection.append(sudoku)
 
