@@ -52,20 +52,10 @@ class Solver:
         return random_literal
 
     @classmethod
-    def get_literal_random_weighted(cls, cnf: CNFtype) -> int:
+    def get_literal_weighted(cls, cnf: CNFtype) -> int:
         """Randomly select a single literal. This is weighted, i.e.
         variable that occurs more often has a higher chance."""
         literals = flatten_list(cnf)
-        random_literal = random.choice(literals)
-
-        return random_literal
-
-    @classmethod
-    def get_literal_random_weighted_abs(cls, cnf: CNFtype) -> int:
-        """Randomly select a non-negated single literal. This is weighted, i.e.
-        variable that occurs more often has a higher chance."""
-        literals = flatten_list(cnf)
-        literals = [abs(literal) for literal in literals]
         random_literal = random.choice(literals)
 
         return random_literal
@@ -148,11 +138,34 @@ class DPLL(Solver):
     def __init__(self, cnf: CNFtype, verbose=False, heuristic="random") -> None:
         super().__init__(cnf, verbose=verbose)
 
-        heuristic_techniques = ["random", "weighted", "weighted_abs", "greedy"]
-        assert (
-            heuristic in heuristic_techniques
-        ), f"heuristic must be one of {heuristic_techniques}"
-        self.heuristic = heuristic
+        # To instantaneously triple the options we offer a post action for every heuristic
+        # i.e. _neg makes sure the chosen literal is negated, _pos the opposite
+        heuristics = ["random", "weighted", "greedy"]
+        heuristics_neg = [f"{h}_neg" for h in heuristics]
+        heuristics_pos = [f"{h}_pos" for h in heuristics]
+
+        heuristics = heuristics + heuristics_neg + heuristics_pos
+        heuristics.sort()
+
+        # This checks whether the chosen heuristic is allowed
+        assert heuristic in heuristics, f"heuristic must be one of {heuristics}"
+
+        # E.g. split "random_neg" into "random" and "neg", just "random" becomes "random" and None
+        heuristic, *post = heuristic.split("_")
+
+        # Store the function used to get a new literal, doing it this way saves a lot of if-statements during solving
+        self.get_literal = getattr(self, f"get_literal_{heuristic}")
+
+        # Determine the action to take after a literal is chosen
+        if post == "neg":
+            post_func = lambda x: -abs(x)
+        elif post == "pos":
+            post_func = abs
+        else:
+            post_func = lambda x: x  # do nothing
+
+        # Saves a bunch of if-statements again
+        self.get_literal_post = post_func
 
     def start(self) -> bool:
         # Allows keeping count of backtracks and propagations
@@ -191,14 +204,9 @@ class DPLL(Solver):
             self.backtrack_count += 1
             return False
 
-        if self.heuristic == "random":
-            literal = self.get_literal_random(cnf)
-        elif self.heuristic == "weighted":
-            literal = self.get_literal_random_weighted(cnf)
-        elif self.heuristic == "weighted_abs":
-            self.literals = self.get_literal_random_weighted_abs(cnf)
-        elif self.heuristic == "greedy":
-            literal = self.get_literal_greedy(cnf)
+        # Get a new split based on chosen heuristic
+        literal = self.get_literal(cnf)
+        literal = self.get_literal_post(literal)
 
         # Try negation of the picked literal
         satisfied = self.backtrack(

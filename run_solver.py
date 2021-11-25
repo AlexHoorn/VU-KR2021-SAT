@@ -3,12 +3,12 @@ import cProfile
 import pstats
 from io import StringIO
 from os import path
-
+import pandas as pd
 from sattools.solvers import DPLL
 from sattools.utils import read_dimacs, write_dimacs
 
 
-def main(filepath, heuristic, profile):
+def main(filepath: str, heuristic: str, runs: int, profile: bool):
     # Get filename without extension
     filename, _ = path.splitext(filepath)
 
@@ -19,8 +19,28 @@ def main(filepath, heuristic, profile):
 
     # Get SAT and solve
     cnf = read_dimacs(filepath)
-    dpll = DPLL(cnf, verbose=True, heuristic=heuristic)
-    dpll.solve()
+
+    stats = []
+
+    for i in range(runs):
+        dpll = DPLL(cnf, verbose=True, heuristic=heuristic)
+        dpll.solve()
+
+        # Feedback about solution
+        if dpll.satisfied:
+            print(f"Found solution with length {len(dpll.solution)}", end=", ")
+            write_dimacs(dpll.solution, f"{filename}_solution_{i}.txt")
+            print(f"saved to {filename}_solution.txt")
+        else:
+            print("Couldn't find satisfaction")
+
+        run_stats = dict(
+            backtracks=dpll.backtrack_count,
+            propagations=dpll.propagation_count,
+            duration=round(dpll.solve_duration, 2),
+        )
+        stats.append(run_stats)
+        print(run_stats)
 
     # Disable profiling
     if profile:
@@ -33,20 +53,8 @@ def main(filepath, heuristic, profile):
         with open(f"{filename}_profiled.txt", "w+") as f:
             f.write(stream.getvalue())
 
-    # Feedback about solution
-    if dpll.satisfied:
-        print(f"Found solution with length {len(dpll.solution)}", end=", ")
-        write_dimacs(dpll.solution, f"{filename}_solution.txt")
-        print(f"saved to {filename}_solution.txt")
-    else:
-        print("Couldn't find satisfaction")
-
-    stats = [
-        f"backtracks={dpll.backtrack_count}",
-        f"propagations={dpll.propagation_count}",
-        f"duration={dpll.solve_duration:.2f}s",
-    ]
-    print(", ".join(stats))
+    stats = pd.DataFrame(stats)
+    print(stats.agg(["mean", "std", "max"]))
 
 
 if __name__ == "__main__":
@@ -56,8 +64,11 @@ if __name__ == "__main__":
         "--heuristic", default="random", help="The heuristic to use",
     )
     parser.add_argument(
+        "--runs", default=1, type=int, help="Run the solver multiple times",
+    )
+    parser.add_argument(
         "--profile", action="store_true", help="Enable cProfiler and store to file"
     )
 
     args = parser.parse_args()
-    main(args.file, args.heuristic, args.profile)
+    main(args.file, args.heuristic, args.runs, args.profile)
