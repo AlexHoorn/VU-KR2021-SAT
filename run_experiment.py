@@ -1,5 +1,6 @@
 import argparse
 from multiprocessing import Pool, cpu_count, freeze_support
+from typing import Optional
 
 import pandas as pd
 from os import path
@@ -9,13 +10,14 @@ from sattools.sudoku import Sudoku
 from sattools.utils import read_collections
 
 
-def main(collection: str, heuristic: str, grid: int):
-    grid = f"{grid}x{grid}"
+def main(collection: str, heuristic: str, grid_size: int, n_max: Optional[int]):
+    grid = f"{grid_size}x{grid_size}"
 
-    sudokus_collection = read_collections(collection)
+    sudokus_collection = read_collections(collection, size=grid_size)[:n_max]
     sudokus = [Sudoku(sudoku, grid) for sudoku in sudokus_collection]
     solvers = [
-        DPLL(sudoku.get_all_clauses(), heuristic=heuristic) for sudoku in sudokus
+        DPLL(sudoku.get_all_clauses(), heuristic=heuristic, identifier=i)
+        for i, sudoku in enumerate(sudokus)
     ]
 
     stats_collection = []
@@ -36,6 +38,7 @@ def main(collection: str, heuristic: str, grid: int):
 def solve_sudoku(dpll: DPLL):
     dpll.solve()
     stats = dict(
+        identifier=dpll.identifier,
         backtracks=dpll.backtrack_count,  # n backtracks
         propagations=dpll.propagation_count,  # n propagations
         duration=round(dpll.solve_duration, 2),  # duration in seconds
@@ -50,17 +53,18 @@ def solve_sudoku(dpll: DPLL):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run SAT solving experiment")
-    parser.add_argument(
-        "collection", type=str, help="Filepath to collection of sudokus"
-    )
+    parser.add_argument("collection", help="Filepath to collection of sudokus")
     parser.add_argument(
         "--heuristic", default="random", help="The heuristic to use",
     )
     parser.add_argument(
-        "--grid", default=9, help="Gridsize of the sudoku, e.g. 9 for 9x9"
+        "--grid", default=9, type=int, help="Gridsize of the sudoku, e.g. 9 for 9x9"
+    )
+    parser.add_argument(
+        "--n_max", default=None, type=int, help="Max amount of sudokus to run"
     )
 
     args = parser.parse_args()
 
     freeze_support()
-    main(args.collection, args.heuristic, args.grid)
+    main(args.collection, args.heuristic, args.grid, args.n_max)

@@ -4,10 +4,6 @@ from typing import Any, Iterable, List
 
 CNFtype = List[List[int]]
 
-# Hey Alex, I tried to do it according to your structure
-# but oc feel free to change everything as you want
-sudoku_collectiontype = List[List[str]]
-
 
 def read_dimacs(filepath: str) -> CNFtype:
     """Read a DIMACS file.
@@ -88,11 +84,11 @@ def read_collections(filepath: str, size=9, write=False) -> CNFtype:
         for i in range(0, size):
             for j in range(0, size):
 
-                if vals[i * 9 + j] == ".":
+                if vals[i * size + j] == ".":
                     ...
 
                 else:
-                    sudoku.append([int(f"{i+1}{j+1}{vals[i*9 + j]}")])
+                    sudoku.append([int(f"{i+1}{j+1}{vals[i*size + j]}")])
 
         sudoku_collection.append(sudoku)
 
@@ -101,3 +97,7 @@ def read_collections(filepath: str, size=9, write=False) -> CNFtype:
             write_dimacs(sudoku, write_file)
 
     return sudoku_collection
+
+
+def neg_abs(x):
+    return -abs(x)

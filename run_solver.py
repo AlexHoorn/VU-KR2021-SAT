@@ -3,7 +3,9 @@ import cProfile
 import pstats
 from io import StringIO
 from os import path
+
 import pandas as pd
+
 from sattools.solvers import DPLL
 from sattools.utils import read_dimacs, write_dimacs
 
@@ -53,8 +55,8 @@ def main(filepath: str, heuristic: str, runs: int, profile: bool):
         with open(f"{filename}_profiled.txt", "w+") as f:
             f.write(stream.getvalue())
 
-    stats = pd.DataFrame(stats)
-    print(stats.agg(["mean", "std", "max"]))
+    df = pd.DataFrame(stats)
+    print(df.agg(["mean", "std", "max"]))
 
 
 if __name__ == "__main__":

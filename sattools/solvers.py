@@ -1,20 +1,25 @@
 import random
-from typing import Counter, Iterable, List, Set, Tuple, Union
+from time import time
+from typing import Any, Callable, Counter, Iterable, List, Optional, Set, Tuple, Union
 
 import numpy as np
 
-from .utils import CNFtype, flatten_list
-from time import time
+from .utils import CNFtype, flatten_list, neg_abs
 
 
 class Solver:
-    def __init__(self, cnf: CNFtype, verbose=False) -> None:
+    def __init__(
+        self, cnf: CNFtype, verbose=False, identifier: Optional[Any] = None
+    ) -> None:
         self.cnf = cnf
         self.verbose = verbose
 
         self.literals = self.determine_literals(cnf)
         self.satisfied = False
         self.solution: List[int] = []
+
+        # Helps identifying a solution after using unordered multiprocessing
+        self.identifier = identifier
 
     def solve(self) -> None:
         """Kick off solving algorithm"""
@@ -182,12 +187,14 @@ class Solver:
 
 
 class DPLL(Solver):
-    def __init__(self, cnf: CNFtype, verbose=False, heuristic="random") -> None:
-        super().__init__(cnf, verbose=verbose)
+    def __init__(
+        self, cnf: CNFtype, verbose=False, identifier=None, heuristic="random"
+    ) -> None:
+        super().__init__(cnf, verbose=verbose, identifier=identifier)
 
-        # To instantaneously triple the options we offer a post action for every heuristic
+        # To instantaneously triple the options offered a post action for every heuristic is possible
         # i.e. _neg makes sure the chosen literal is negated, _pos the opposite
-        #TODO: JW Double sided
+        # TODO: JW Double sided
         heuristics = ["random", "weighted", "dlis", "dlcs", "jw"]
         heuristics_neg = [f"{h}_neg" for h in heuristics]
         heuristics_pos = [f"{h}_pos" for h in heuristics]
@@ -201,16 +208,17 @@ class DPLL(Solver):
         # E.g. split "random_neg" into "random" and "neg", just "random" becomes "random" and None
         heuristic, *post = heuristic.split("_")
 
-        # Store the function used to get a new literal, doing it this way saves a lot of if-statements during solving
+        # Store the function used to get a new literal, saves a lot of if-statements during solving
         self.get_literal = getattr(self, f"get_literal_{heuristic}")
 
         # Determine the action to take after a literal is chosen
+        post_func: Optional[Callable]
         if post == "neg":
-            post_func = lambda x: -abs(x)
+            post_func = neg_abs
         elif post == "pos":
             post_func = abs
         else:
-            post_func = lambda x: x  # do nothing
+            post_func = None
 
         # Saves a bunch of if-statements again
         self.get_literal_post = post_func
@@ -254,7 +262,9 @@ class DPLL(Solver):
 
         # Get a new split based on chosen heuristic
         literal = self.get_literal(cnf)
-        literal = self.get_literal_post(literal)
+        # Do a post action if set
+        if self.get_literal_post:
+            literal = self.get_literal_post(literal)
 
         # Try non-negation of the picked literal
         satisfied = self.backtrack(
