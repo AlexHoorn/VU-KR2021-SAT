@@ -193,9 +193,12 @@ class Solver:
             count = 0
 
             for clause in cnf:
+                # counting for each pos literal that satisfies a clause
                 if literal in clause:
                     count += 1
                 
+                # having a look into small clauses, to make them even smaller
+                # by looking to the negation of the current literal
                 if len(clause) == min_clause:
                     if literal*-1 in clause:
                         count += 1
