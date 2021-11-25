@@ -91,7 +91,6 @@ class Solver:
     # jeroslaw wang one-sided
     @classmethod
     def get_literal_jw(cls, cnf: CNFtype) -> int:
-        """ set two_sided = True for two sided JW heuristic"""
         counter = {}
         for clause in cnf:
             # check for one/two sided
@@ -107,8 +106,6 @@ class Solver:
     # Jeroslaw Wang two-sided
     @classmethod
     def get_literal_jwtwo(cls, cnf: CNFtype) -> int:
-        """ set two_sided = True for two sided JW heuristic"""
-
         counter = {}
         for clause in cnf:
             # check for one/two sided
@@ -131,6 +128,83 @@ class Solver:
                 counter[max_var * -1] += 2 ** -len(clause)
 
         return max(counter, key=counter.get)
+
+    # Moms Heuristic
+    # default value = 2, but we should either cite a paper why we are
+    # using this tuning parameter (read this in the group chat) 
+    # or search in a simulation for the best one
+    # could be a lil research question in Hypothesis 1?
+    @classmethod
+    def get_literal_moms(cls, cnf: CNFtype, k = 2) -> int:
+
+        min_clause = float('inf') 
+        # so that there is always a minimum in the clause length, independent of the problem
+        for clause in cnf:
+            if len(clause) < min_clause:
+                min_clause = len(clause)
+
+        # test for al literals which maximize 
+        max_val = float('-inf')
+        max_lit = 0
+        # lit = list(determine_literals(cnf))
+        # determine_literals is not defined?
+        lit = list(set(abs(literal) for literal in flatten_list(cnf)))
+
+        for literal in lit:
+            count_pos = 0
+            count_neg = 0
+
+            for clause in cnf:
+                if len(clause) == min_clause:
+                    if literal in clause:
+                        count_pos += 1
+                    elif literal*-1 in clause:
+                        count_neg += 1
+
+            # finally the actual term
+            val = ((count_pos + count_neg) * (2**k)) + (count_pos*count_neg)
+            
+            if val > max_val:
+                max_val = val
+                
+                # not completely sure about this tbh, but intuitive it would make sense for me
+                if count_pos >= count_neg:
+                    max_lit = literal
+                else:
+                    max_lit = literal*-1
+    
+        return max_lit
+
+    @classmethod
+    def get_literal_mams(cls, cnf: CNFtype) -> int:
+
+        min_clause = float('inf') 
+        # so that there is always a minimum in the clause length, independent of the problem
+        for clause in cnf:
+            if len(clause) < min_clause:
+                min_clause = len(clause)
+        
+        lit = list(set(abs(literal) for literal in flatten_list(cnf)))
+
+        max_val = float('-inf')
+        max_lit = 0
+
+        for literal in lit:
+            count = 0
+
+            for clause in cnf:
+                if literal in clause:
+                    count += 1
+                
+                if len(clause) == min_clause:
+                    if literal*-1 in clause:
+                        count += 1
+            
+            if count > max_val:
+                max_val = count
+                max_lit = literal
+        
+        return max_lit
 
     @staticmethod
     def determine_pure_literals(cnf: CNFtype) -> Set[int]:
