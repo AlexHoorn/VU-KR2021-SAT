@@ -99,7 +99,6 @@ class Solver:
                 else:
                     counter[literal] = 2 ** -len(clause)
 
-
         return max(counter, key=counter.get)
 
     # Jeroslaw Wang two-sided
@@ -129,20 +128,20 @@ class Solver:
 
     # Moms Heuristic
     # default value = 2, but we should either cite a paper why we are
-    # using this tuning parameter (read this in the group chat) 
+    # using this tuning parameter (read this in the group chat)
     # or search in a simulation for the best one
     # could be a lil research question in Hypothesis 1?
     @classmethod
-    def get_literal_moms(cls, cnf: CNFtype, k = 2) -> int:
+    def get_literal_moms(cls, cnf: CNFtype, k=2) -> int:
 
-        min_clause = float('inf') 
+        min_clause = float("inf")
         # so that there is always a minimum in the clause length, independent of the problem
         for clause in cnf:
             if len(clause) < min_clause:
                 min_clause = len(clause)
 
-        # test for al literals which maximize 
-        max_val = float('-inf')
+        # test for al literals which maximize
+        max_val = float("-inf")
         max_lit = 0
         # lit = list(determine_literals(cnf))
         # determine_literals is not defined?
@@ -156,35 +155,35 @@ class Solver:
                 if len(clause) == min_clause:
                     if literal in clause:
                         count_pos += 1
-                    elif literal*-1 in clause:
+                    elif literal * -1 in clause:
                         count_neg += 1
 
             # finally the actual term
-            val = ((count_pos + count_neg) * (2**k)) + (count_pos*count_neg)
-            
+            val = ((count_pos + count_neg) * (2 ** k)) + (count_pos * count_neg)
+
             if val > max_val:
                 max_val = val
-                
+
                 # not completely sure about this tbh, but intuitive it would make sense for me
                 if count_pos >= count_neg:
                     max_lit = literal
                 else:
-                    max_lit = literal*-1
-    
+                    max_lit = literal * -1
+
         return max_lit
 
     @classmethod
     def get_literal_mams(cls, cnf: CNFtype) -> int:
 
-        min_clause = float('inf') 
+        min_clause = float("inf")
         # so that there is always a minimum in the clause length, independent of the problem
         for clause in cnf:
             if len(clause) < min_clause:
                 min_clause = len(clause)
-        
+
         lit = list(set(abs(literal) for literal in flatten_list(cnf)))
 
-        max_val = float('-inf')
+        max_val = float("-inf")
         max_lit = 0
 
         for literal in lit:
@@ -194,17 +193,17 @@ class Solver:
                 # counting for each pos literal that satisfies a clause
                 if literal in clause:
                     count += 1
-                
+
                 # having a look into small clauses, to make them even smaller
                 # by looking to the negation of the current literal
                 if len(clause) == min_clause:
-                    if literal*-1 in clause:
+                    if literal * -1 in clause:
                         count += 1
-            
+
             if count > max_val:
                 max_val = count
                 max_lit = literal
-        
+
         return max_lit
 
     @staticmethod
@@ -239,7 +238,10 @@ class Solver:
     @staticmethod
     def shorten_clauses_with_literal(cnf: CNFtype, literal: int):
         """Shorten clauses from cnf with given literal"""
-        return [[c for c in clause if c != literal] for clause in cnf]
+        return [
+            [c for c in clause if c != literal] if literal in clause else clause
+            for clause in cnf
+        ]
 
     # NOTE: This doesn't implement the tautology rule
     @classmethod
@@ -279,7 +281,9 @@ class DPLL(Solver):
 
         # To instantaneously triple the options offered a post action for every heuristic is possible
         # i.e. _neg makes sure the chosen literal is negated, _pos the opposite
-        heuristics = ["random", "weighted", "dlis", "dlcs", "jw", "jwtwo"]
+        heuristics = [
+            h.split("_")[-1] for h in dir(self) if h.startswith("get_literal")
+        ]
         heuristics_neg = [f"{h}_neg" for h in heuristics]
         heuristics_pos = [f"{h}_pos" for h in heuristics]
 
