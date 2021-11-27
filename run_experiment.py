@@ -1,9 +1,12 @@
 import argparse
-from multiprocessing import Pool, cpu_count, freeze_support
+from concurrent.futures import TimeoutError
+from multiprocessing import cpu_count, freeze_support
+from os import path
 from typing import Optional
 
 import pandas as pd
-from os import path
+from pebble import ProcessPool
+from pebble.common import ProcessExpired
 
 from sattools.solvers import DPLL
 from sattools.sudoku import Sudoku
@@ -33,26 +36,50 @@ def main(
     sudokus_iter = zip(ids, sudokus) if ids_path else enumerate(sudokus)
     # Construct solvers
     solvers = [
-        DPLL(sudoku.get_all_clauses(), heuristic=heuristic, identifier=identifier)
+        DPLL(
+            sudoku.get_all_clauses(),
+            heuristic=heuristic,
+            identifier=identifier,
+        )
         for identifier, sudoku in sudokus_iter
     ]
     # Run every multiple times
     solvers = solvers * repeat
 
     stats_collection = []
-    n_solvers = len(solvers)
+    timeouts = 0
     print(f"Solving {len(solvers)} sudokus, {heuristic = }, n threads = {cpu_count()}")
 
-    # Enable multiprocessing
-    with Pool() as pool:
-        for i, stats in enumerate(pool.imap_unordered(solve_sudoku, solvers)):
-            stats_collection.append(stats)
-            print(stats, f"{i+1}/{n_solvers}")
+    # Enable multiprocessing through Pebble
+    with ProcessPool() as pool:
+        future = pool.map(solve_sudoku, solvers, timeout=600)
+        iterator = future.result()
 
-    # Gathered statistic to a dataframe so it can be easily written as csv
+        while True:
+            try:
+                result = next(iterator)
+                stats_collection.append(result)
+                print(result)
+            except StopIteration:
+                break
+            except TimeoutError as error:
+                timeouts += 1
+                print("Timeout")
+            except ProcessExpired as error:
+                print("Process expired")
+            except Exception as error:
+                print("function raised %s" % error)
+                print(error.traceback)
+
+    # Gather statistic to a dataframe so it can be easily written as csv
     dataframe = pd.DataFrame(stats_collection)
     filename, _ = path.splitext(path.basename(collection))
-    dataframe.to_csv(f"experiments/{grid}_{heuristic}_{filename}.csv", index=False)
+    outfile = "_".join([grid, heuristic, filename])
+    dataframe.to_csv(f"experiments/{outfile}.csv", index=False)
+
+    if timeouts > 0:
+        with open(f"experiments/{outfile}_timeouts.txt", "w") as f:
+            f.write(str(timeouts))
 
 
 def solve_sudoku(dpll: DPLL):
@@ -61,13 +88,14 @@ def solve_sudoku(dpll: DPLL):
         identifier=dpll.identifier,
         backtracks=dpll.backtrack_count,  # n backtracks
         propagations=dpll.propagation_count,  # n propagations
-        duration=round(dpll.solve_duration, 2),  # duration in seconds
+        duration=dpll.solve_duration,  # duration in seconds
         constraint_size=len(
             dpll.determine_unit_clauses(dpll.cnf)
         ),  # size of original sudoku
         assignment_size=len(dpll.solution),  # size of final assignment
         satisfied=dpll.satisfied,  # true or false if satisfied
     )
+
     return stats
 
 
