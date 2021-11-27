@@ -1,4 +1,4 @@
-,identifier,backtracks,propagations,duration,constraint_size,assignment_size,satisfied
+identifier,backtracks,propagations,duration,constraint_size,assignment_size,satisfied
 0,11,29,66,5.76,22,729,True
 1,5,30,65,9.32,22,729,True
 2,9,44,96,9.63,22,729,True
