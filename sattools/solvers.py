@@ -69,7 +69,8 @@ class Solver:
     def get_literal_dlis(cls, cnf: CNFtype) -> int:
         units = flatten_list(cnf)
         count = Counter(units)
-        most_common = [unit for unit, _ in count.most_common()]
+        max_count = count.most_common(1)[0][1]
+        most_common = [unit for unit, c in count.most_common() if c == max_count]
         literal = random.choice(most_common)
 
         return literal
@@ -81,7 +82,9 @@ class Solver:
         units_abs = [abs(unit) for unit in units]
 
         count = Counter(units_abs)
-        literal = random.choice([unit for unit, _ in count.most_common()])
+        max_count = count.most_common(1)[0][1]
+        most_common = [unit for unit, c in count.most_common() if c == max_count]
+        literal = random.choice(most_common)
 
         if units.count(literal) > units.count(literal * -1):
             return literal
