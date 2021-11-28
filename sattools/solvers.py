@@ -1,8 +1,6 @@
 import random
 from time import time
-from typing import Any, Callable, Counter, Iterable, List, Optional, Set, Tuple, Union
-
-import numpy as np
+from typing import Any, Callable, Counter, Iterable, List, Optional, Set, Tuple
 
 from .utils import CNFtype, flatten_list, neg_abs
 
@@ -18,7 +16,7 @@ class Solver:
         self.satisfied = False
         self.solution: List[int] = []
 
-        # Helps identifying a solution after using unordered multiprocessing
+        # Helps identifying a solution while using unordered multiprocessing
         self.identifier = identifier
 
     def solve(self) -> None:
@@ -33,7 +31,7 @@ class Solver:
             if self.satisfied:
                 print("Satisfied")
             else:
-                print("Cannot satisfied")
+                print("Did not find a satisfiable assignment")
 
     def start(self) -> bool:
         # NOTE: Implement this function in subclass
@@ -67,6 +65,7 @@ class Solver:
 
     @classmethod
     def get_literal_dlis(cls, cnf: CNFtype) -> int:
+        """Greatest individual sum."""
         units = flatten_list(cnf)
         count = Counter(units)
         max_count = count.most_common(1)[0][1]
@@ -75,9 +74,9 @@ class Solver:
 
         return literal
 
-    # greatest combined sum
     @classmethod
     def get_literal_dlcs(cls, cnf: CNFtype) -> int:
+        """Greatest combined sum."""
         units = flatten_list(cnf)
         units_abs = [abs(unit) for unit in units]
 
@@ -91,9 +90,9 @@ class Solver:
 
         return literal * -1
 
-    # jeroslaw wang one-sided
     @classmethod
     def get_literal_jw(cls, cnf: CNFtype) -> int:
+        """Jeroslaw-Wang one-sided."""
         counter = {}
         for clause in cnf:
             for literal in clause:
@@ -104,9 +103,9 @@ class Solver:
 
         return max(counter, key=counter.get)
 
-    # Jeroslaw Wang two-sided
     @classmethod
     def get_literal_jwtwo(cls, cnf: CNFtype) -> int:
+        """Jeroslaw-Wang two-sided."""
         counter = {}
         for clause in cnf:
             clause = [abs(literal) for literal in clause]
@@ -129,13 +128,9 @@ class Solver:
 
         return max(counter, key=counter.get)
 
-    # Moms Heuristic
-    # default value = 2, but we should either cite a paper why we are
-    # using this tuning parameter (read this in the group chat)
-    # or search in a simulation for the best one
-    # could be a lil research question in Hypothesis 1?
     @classmethod
     def get_literal_moms(cls, cnf: CNFtype, k=2) -> int:
+        """Maximum occurence in clauses of minimum size"""
 
         min_clause = float("inf")
         # so that there is always a minimum in the clause length, independent of the problem
@@ -177,6 +172,8 @@ class Solver:
 
     @classmethod
     def get_literal_mams(cls, cnf: CNFtype) -> int:
+        """Dynamic largest individual sum plus
+        Maximum occurence in clauses of minimum size."""
 
         min_clause = float("inf")
         # so that there is always a minimum in the clause length, independent of the problem
@@ -214,7 +211,6 @@ class Solver:
         """Determine all pure literals"""
         unique_literals = set(flatten_list(cnf))
         # Keep a set of literals when their negation isn't present
-        # FYI: { } does a set comprehension
         pure_literals = {ul for ul in unique_literals if -ul not in unique_literals}
 
         return pure_literals
@@ -246,7 +242,6 @@ class Solver:
             for clause in cnf
         ]
 
-    # NOTE: This doesn't implement the tautology rule
     @classmethod
     def simplify(cls, cnf: CNFtype) -> Tuple[CNFtype, Set[int]]:
         """Remove unit clauses and pure literals, return new cnf and removed literals"""
@@ -257,20 +252,20 @@ class Solver:
 
         remove_literals = unit_clauses | pure_literals
 
-        # Remove pure literals from cnf
+        # Remove literals from cnf
         for literal in remove_literals:
             cnf = cls.remove_literal(cnf, literal)
 
         return cnf, remove_literals
 
     @staticmethod
-    def check_satisfaction(cnf: CNFtype) -> Union[bool, None]:
+    def check_satisfaction(cnf: CNFtype) -> Optional[bool]:
         # Satisfied is CNF contains no clauses
         if len(cnf) == 0:
             return True
 
         # Unsatisfied if CNF contains empty clauses
-        if np.isin(0, np.fromiter(map(len, cnf), dtype=np.int_)):
+        if 0 in list(map(len, cnf)):
             return False
 
         return None
@@ -278,41 +273,16 @@ class Solver:
 
 class DPLL(Solver):
     def __init__(
-        self, cnf: CNFtype, verbose=False, identifier=None, heuristic="random"
+        self,
+        cnf: CNFtype,
+        verbose: bool = False,
+        identifier: Any = None,
+        heuristic: str = "random",
     ) -> None:
         super().__init__(cnf, verbose=verbose, identifier=identifier)
 
-        # To instantaneously triple the options offered a post action for every heuristic is possible
-        # i.e. _neg makes sure the chosen literal is negated, _pos the opposite
-        heuristics = [
-            h.split("_")[-1] for h in dir(self) if h.startswith("get_literal")
-        ]
-        heuristics_neg = [f"{h}_neg" for h in heuristics]
-        heuristics_pos = [f"{h}_pos" for h in heuristics]
-
-        heuristics = heuristics + heuristics_neg + heuristics_pos
-        heuristics.sort()
-
-        # This checks whether the chosen heuristic is allowed
-        assert heuristic in heuristics, f"heuristic must be one of {heuristics}"
-
-        # E.g. split "random_neg" into "random" and "neg", just "random" becomes "random" and None
-        heuristic, *post = heuristic.split("_")
-
-        # Store the function used to get a new literal, saves a lot of if-statements during solving
-        self.get_literal = getattr(self, f"get_literal_{heuristic}")
-
-        # Determine the action to take after a literal is chosen
-        post_func: Optional[Callable]
-        if post == "neg":
-            post_func = neg_abs
-        elif post == "pos":
-            post_func = abs
-        else:
-            post_func = None
-
-        # Saves a bunch of if-statements again
-        self.get_literal_post = post_func
+        # Determining this once saves a lot of it-statements and some computing power
+        self.get_literal, self.literal_post = self.get_heuristic_funcs(heuristic)
 
     def start(self) -> bool:
         # Allows keeping count of backtracks and propagations
@@ -341,21 +311,22 @@ class DPLL(Solver):
         partial_assignment = partial_assignment | removed_literals
 
         # Finish if cnf contains no clauses: satisfied
-        if len(cnf) == 0:
+        satisfied = self.check_satisfaction(cnf)
+        if satisfied is True:
             self.set_solution(partial_assignment)
             return True
-
         # Stop if cnf contains empty clauses: unsatisfied
-        if np.isin(0, np.fromiter(map(len, cnf), dtype=np.int_)):
+        if satisfied is False:
             # Keep the count of backtracks
             self.backtrack_count += 1
             return False
+        # Keep running if satisfied is None
 
         # Get a new split based on chosen heuristic
         literal = self.get_literal(cnf)
         # Do a post action if set
-        if self.get_literal_post:
-            literal = self.get_literal_post(literal)
+        if self.literal_post:
+            literal = self.literal_post(literal)
 
         # Try non-negation of the picked literal
         satisfied = self.backtrack(
@@ -369,3 +340,41 @@ class DPLL(Solver):
             )
 
         return satisfied
+
+    @classmethod
+    def get_available_heuristics(cls) -> List[str]:
+        # Look up which `get_literal_...` functions are available
+        heuristics = [h.split("_")[-1] for h in dir(cls) if h.startswith("get_literal")]
+        # To instantaneously triple the options offered a post action for every heuristic is possible
+        # i.e. _neg makes sure the chosen literal is negated, _pos the opposite
+        heuristics_neg = [f"{h}_neg" for h in heuristics]
+        heuristics_pos = [f"{h}_pos" for h in heuristics]
+
+        heuristics = heuristics + heuristics_neg + heuristics_pos
+        heuristics.sort()
+
+        return heuristics
+
+    @classmethod
+    def get_heuristic_funcs(cls, heuristic: str) -> Tuple[Callable, Optional[Callable]]:
+        heuristics = cls.get_available_heuristics()
+
+        # This checks whether the chosen heuristic is allowed
+        assert heuristic in heuristics, f"heuristic must be one of {heuristics}"
+
+        # E.g. split "random_neg" into "random" and "neg", just "random" becomes "random" and None
+        heuristic, *post = heuristic.split("_")
+
+        # Get the function to determine the literal
+        literal_func = getattr(cls, f"get_literal_{heuristic}")
+
+        # Determine the action to take after a literal is chosen
+        post_func: Optional[Callable]
+        if post == "neg":
+            post_func = neg_abs
+        elif post == "pos":
+            post_func = abs
+        else:
+            post_func = None
+
+        return literal_func, post_func

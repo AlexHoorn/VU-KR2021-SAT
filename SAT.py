@@ -31,8 +31,7 @@ def main(filepath: str, heuristic: str, runs: int, profile: bool):
         # Feedback about solution
         if dpll.satisfied:
             print(f"Found solution with length {len(dpll.solution)}", end=", ")
-            write_dimacs(dpll.solution, f"{filename}_solution_{i}.txt")
-            print(f"saved to {filename}_solution.txt")
+            write_dimacs(dpll.solution, f"{filename}_{i}.out")
         else:
             print("Couldn't find satisfaction")
 
@@ -42,7 +41,7 @@ def main(filepath: str, heuristic: str, runs: int, profile: bool):
             duration=round(dpll.solve_duration, 2),
         )
         stats.append(run_stats)
-        print(run_stats)
+        print(f"stats: {run_stats}")
 
     # Disable profiling
     if profile:
@@ -55,15 +54,18 @@ def main(filepath: str, heuristic: str, runs: int, profile: bool):
         with open(f"{filename}_profiled.txt", "w+") as f:
             f.write(stream.getvalue())
 
-    df = pd.DataFrame(stats)
-    print(df.agg(["mean", "std", "max"]))
+    if runs > 1:
+        df = pd.DataFrame(stats)
+        print(df.agg(["mean", "std", "max"]))
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run SAT solver")
     parser.add_argument("file", type=str, help="Filepath to dimacs to solve")
     parser.add_argument(
-        "--heuristic", default="random", help="The heuristic to use",
+        "--heuristic",
+        default="random",
+        help=f"The heuristic to use, one of {DPLL.get_available_heuristics()}",
     )
     parser.add_argument(
         "--runs", default=1, type=int, help="Run the solver multiple times",
