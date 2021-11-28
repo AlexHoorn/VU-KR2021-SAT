@@ -5,13 +5,13 @@
 ## Plots and Statistical Analysis of Experiments 
 ##
 ##
-## Input: all csv files in Experiments
+## Input: all *.csv and *.txt files in Experiments
 ## Output: "Violin_4.pdf", "Violin_9.pdf", "Violin_16.pdf", 
 ##         "Scatterplot_all.pdf", "Scatterplot_4.pdf", "Scatterplot_9.pdf",
-##         "Scatterplot_16.pdf", "Means.pdf"
+##         "Scatterplot_16.pdf", "Means.pdf", "Means_cog.pdf"
 ##
 ##
-## last mod: 24.11.21
+## last mod: 27.11.21
 
 # working directory
 # setwd("C:/Users/oleh/Documents/Uni/13_Semester/Knowledge_Representation/knowledge-representation-6")
@@ -183,8 +183,7 @@ plot(duration ~ backtracks, data = dat[dat$heuristic == heu[1],], type = "p", co
      xlim = c(0, 18000), ylim = c(0, 600), xlab = "Number of backtracks", ylab = "Duration (sec)")
 abline(lm(duration ~ backtracks, data = dat[dat$heuristic == heu[1],]), col = cols[1])
 
-legend("bottomright", legend = heu, col = cols, 
-       lty = 1, cex=1, lwd = 2, box.col = "white")
+
 
 points(duration ~ backtracks, data = dat[dat$heuristic == heu[2],], col = cols[2])
 points(duration ~ backtracks, data = dat[dat$heuristic == heu[3],], col = cols[3])
@@ -202,7 +201,10 @@ for(i in 2:length(heu)){
 abline(v = 0, lty = "dotdash", col = "darkgrey")
 
 # abline until legend
-segments(0, 0, 13500, 0, lty = "dotdash", col = "darkgrey")
+segments(-1000, 0, 13500, 0, lty = "dotdash", col = "darkgrey")
+
+legend("bottomright", legend = heu, col = cols, 
+       lty = 1, cex=1, lwd = 2, box.col = "white")
 
 box()
 
@@ -238,7 +240,7 @@ abline(h = 0, lty = "dotdash", col = "darkgrey")
 #abline(v = 0, lty = "dotdash", col = "darkgrey")
 
 # abline until legend
-segments(0, 0, 0, 0.016, lty = "dotdash", col = "darkgrey")
+segments(0, -1, 0, 0.016, lty = "dotdash", col = "darkgrey")
 
 for(i in 2:length(heu)){
   if(i != 6){
@@ -247,7 +249,7 @@ for(i in 2:length(heu)){
 }
 
 #moms zero backtracks
-segments(0, 0, 0, 0.016, lty = "solid", col = cols[6])
+segments(0, -1, 0, 0.016, lty = "solid", col = cols[6])
 
 box()
 
@@ -261,7 +263,7 @@ pdf("Plots/Scatterplot_9.pdf", width = 6, height = 6, pointsize = 12)
 par(mgp = c(2.5, 0.7, 0), mar = c(4, 4, 1, 1) + 0.1)
 
 plot(duration ~ backtracks, data = help_dat[help_dat$heuristic == heu[1],], type = "p", col = cols[1], 
-     xlim = c(0, 6000), ylim = c(0, 45), xlab = "Number of backtracks", ylab = "Duration (sec)")
+     xlim = c(0, 13500), ylim = c(0, 45), xlab = "Number of backtracks", ylab = "Duration (sec)")
 abline(lm(duration ~ backtracks, data = help_dat[help_dat$heuristic == heu[1],]), col = cols[1])
 
 legend("topleft", legend = heu, col = cols, 
@@ -280,7 +282,7 @@ abline(h = 0, lty = "dotdash", col = "darkgrey")
 #abline(v = 0, lty = "dotdash", col = "darkgrey")
 
 # abline until legend
-segments(0, 0, 0, 30, lty = "dotdash", col = "darkgrey")
+segments(0, -10, 0, 30, lty = "dotdash", col = "darkgrey")
 
 for(i in 2:length(heu)){
   abline(lm(duration ~ backtracks, data = help_dat[help_dat$heuristic == heu[i],]), col = cols[i])
@@ -319,7 +321,7 @@ points(duration ~ backtracks, data = help_dat[help_dat$heuristic == heu[8],], co
 abline(v = 0, lty = "dotdash", col = "darkgrey")
 
 # abline until legend
-segments(0, 0, 25000, 0, lty = "dotdash", col = "darkgrey")
+segments(-5000, 0, 23000, 0, lty = "dotdash", col = "darkgrey")
 
 for(i in 2:length(heu)){
   abline(lm(duration ~ backtracks, data = help_dat[help_dat$heuristic == heu[i],]), col = cols[i])
@@ -334,28 +336,28 @@ dev.off()
 ## Significance tests for correlation
 
 cor.test(dat[dat$heuristic == heu[1], "duration"], dat[dat$heuristic == heu[1], "backtracks"])
-# dlcs: p < .001, cor = .89; dlcs
+# dlcs: p = .002, cor = .22;
 
 cor.test(dat[dat$heuristic == heu[2], "duration"], dat[dat$heuristic == heu[2], "backtracks"])
-# dlis: p < .001, cor = .92; dlis
+# dlis: p = .107, cor = .114;
 
 cor.test(dat[dat$heuristic == heu[3], "duration"], dat[dat$heuristic == heu[3], "backtracks"])
-# dlis: p < .001, cor = .76; jw_one
+# dlis: p < .001, cor = .76;
 
 cor.test(dat[dat$heuristic == heu[4], "duration"], dat[dat$heuristic == heu[4], "backtracks"])
-# jw_one: p < .001, cor = .59; jw_two
+# jw_one: p < .001, cor = .59;
 
 cor.test(dat[dat$heuristic == heu[5], "duration"], dat[dat$heuristic == heu[5], "backtracks"])
-# jw_two: p < .001, cor = .63; mams
+# jw_two: p < .001, cor = .63;
 
 cor.test(dat[dat$heuristic == heu[6], "duration"], dat[dat$heuristic == heu[6], "backtracks"])
-# random: p < .001, cor = .78; moms
+# random: p < .001, cor = .78;
 
 cor.test(dat[dat$heuristic == heu[7], "duration"], dat[dat$heuristic == heu[7], "backtracks"])
-# weighted: p < .001, cor = .83; random
+# random: p < .001, cor = .83;
 
 cor.test(dat[dat$heuristic == heu[8], "duration"], dat[dat$heuristic == heu[8], "backtracks"])
-# weighted: p < .001, cor = .94; weighted
+# weighted: p < .001, cor = .94;
 
 
 
@@ -392,7 +394,7 @@ arrows(1:3, desc$duration - desc$se,
 
 box()
 
-dev.off
+dev.off()
 
 
 ## Statistical Analysis
@@ -408,13 +410,13 @@ m4 <- lm(duration ~ heuristic * size * I(size^2), data = dat)
 
 # Likelihood-Ratio Test
 anova(m1,m2, m3, m4)
-# X^2(1) = 3227.27, p < .001; its quadratic
-# X^2(7) = 6.92, p < .001; different intercepts per heuristic
-# X^2(14) = 33.18, p < .001; different linear and quadratic slops per heuristic
+# X^2(1) = 4645.75, p < .001; its quadratic
+# X^2(7) = 11.50, p < .001; different intercepts per heuristic
+# X^2(14) = 62.69, p < .001; different linear and quadratic slops per heuristic
 
 
 # Visualization
-xyplot(duration + predict(m1) + predict(m2) + predict(m3) ~ size | heuristic, dat, type=c("p", "l", "l", "l"),
+xyplot(duration + predict(m4) ~ size | heuristic, dat, type=c("p", "l"),
        pch=16, strip = strip.custom(bg="gray96"), grid=TRUE,
        distribute.type = TRUE, par.strip.text=list(cex=.8),
        layout=c(8,1), ylab="Duration (sec)", xlab="Size")
@@ -455,7 +457,25 @@ dev.off()
 
 
 # analysis
-
+dat_cog$identifier <- as.numeric(as.character(dat_cog$identifier))
 cor.test(dat_cog$duration, dat_cog$identifier)
-# r = 0.05, p = .068, no significant (linear) correlation between difficulty and mean duration
+# r = 0.04, p = .115, no significant (linear) correlation between difficulty and mean duration
 
+
+
+## timeouts:
+
+# order as levels(dat$heuristic)
+timeouts <- c(25, 25, 24, 24, 13, 14, 17, 15)
+
+n <- 32
+
+pct <- timeouts/n
+
+round(pct, 2)
+# dlcs     dlis     jw_one   jw_two   mams     moms     random   weighted
+# 0.78     0.78       0.75     0.75   0.41     0.44       0.53       0.47
+
+
+
+# end
