@@ -34,7 +34,7 @@ python SAT.py PATH_TO_DIMACS_FILE --heuristic HEURISTIC
 ```
 The resulting answer will be stored in `PATH_TO_DIMACS_FILE_n.out`
 
-Replace `PATH_TO_DIMACS_FILE` with a string to where the SAT in DIMACS format can be found. As an example `sudoku-example.txt` is provided.
+Replace `PATH_TO_DIMACS_FILE` with a string to where the SAT in DIMACS format can be found. As an example `sudoku-example_NxN.txt` are provided.
 
 Replace `HEURISTIC` with the heuristic to use (default `random`). Supported heuristics are: `['dlcs', 'dlis', 'jw', 'jwtwo', 'mams', 'moms', 'random', 'weighted']`. Additionally the heuristic can be suffixed with either `_pos` or `_neg` to force a `True` or `False` assignment respectively. So then the heuristic given becomes e.g. `random_neg`.
 

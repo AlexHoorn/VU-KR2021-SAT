@@ -22,7 +22,6 @@ def read_dimacs(filepath: str) -> CNFtype:
             row = row.strip()  # Remove leading and trailing spaces
             clauses = row.split(" ")  # Split into statements
             clauses_int = {int(i) for i in clauses}  # Convert to integers
-
             clause_list.append(clauses_int)
 
     return clause_list
@@ -31,7 +30,10 @@ def read_dimacs(filepath: str) -> CNFtype:
 def write_dimacs(iterable: Iterable[Any], filepath: str):
     with open(filepath, "w") as f:
         for i in iterable:
-            f.write(f"{i} 0\n")
+            if isinstance(i, int):
+                i = [i]
+            line = " ".join([str(i) for i in i])
+            f.write(f"{line} 0\n")
 
 
 def flatten_list(list_: Iterable[Iterable[Any]]) -> List[Any]:
