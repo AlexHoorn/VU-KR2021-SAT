@@ -1,15 +1,5 @@
-# Instruction
-
-## Requirements
-
-Python version >= `3.7`.
-
-Optionally the requirements `Pebble == 4.6.3` and `pandas == 1.3.4` have to be met if you wish to run `run_experiment.py`. The main program is provided in `SAT.py` which does not have any additional requirements.
-
-To install both optional packages just run:
-```console
-pip install -r requirements.txt
-```
+# VU-KR2021-SAT
+A SAT solving project for the Vrije Universiteit 2021 course Knowledge and Data.
 
 ## Implemented heuristics
 ```python
@@ -23,7 +13,20 @@ pip install -r requirements.txt
 'weighted' : 'Random with weighting by amount of occurences'
 ```
 
-## Usage
+## Instruction
+
+### Requirements
+
+Python version >= `3.7`.
+
+Optionally the requirements `Pebble == 4.6.3` and `pandas == 1.3.4` have to be met if you wish to run `run_experiment.py`. The main program is provided in `SAT.py` which does not have any additional requirements.
+
+To install both optional packages just run:
+```console
+pip install -r requirements.txt
+```
+
+### Usage
 
 To do a single SAT solve and get its results run:
 ```console

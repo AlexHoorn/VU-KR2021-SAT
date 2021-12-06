@@ -6,14 +6,7 @@ CNFtype = List[Set[int]]
 
 
 def read_dimacs(filepath: str) -> CNFtype:
-    """Read a DIMACS file.
-
-    Args:
-        filepath (str): path to where file is.
-
-    Returns:
-        List[np.ndarray]: list of clauses as numpy arrays.
-    """
+    """Read a DIMACS file."""
     with open(filepath, encoding="UTF-8") as f:
         # Read the file and split by newlines into a list
         dimacs_lines = f.read().splitlines()
