@@ -65,7 +65,7 @@ class Sudoku:
         clauses = self.get_all_clauses()
         for clause in clauses:
             assert isinstance(
-                clause, list
+                clause, set
             ), f"found clause {clause} with type {type(clause)}"
             for unit in clause:
                 assert isinstance(

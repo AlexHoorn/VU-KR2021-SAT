@@ -14,7 +14,7 @@ class Solver:
 
         self.literals = self.determine_literals(cnf)
         self.satisfied = False
-        self.solution: List[int] = []
+        self.solution: Set[int] = set()
 
         # Helps identifying a solution while using unordered multiprocessing
         self.identifier = identifier
@@ -39,7 +39,7 @@ class Solver:
 
     def set_solution(self, solution: Iterable[int]):
         """Set the solution"""
-        self.solution = list(solution)
+        self.solution = set(solution)
 
     @staticmethod
     def determine_literals(cnf: CNFtype) -> Set[int]:
@@ -218,10 +218,10 @@ class Solver:
     @staticmethod
     def determine_unit_clauses(cnf: CNFtype) -> Set[int]:
         """Return the unit clauses in a cnf"""
-        return {clause[0] for clause in cnf if len(clause) == 1}
+        return {list(clause)[0] for clause in cnf if len(clause) == 1}
 
     @classmethod
-    def remove_literal(cls, cnf: CNFtype, literal: int):
+    def remove_literal(cls, cnf: CNFtype, literal: int) -> CNFtype:
         # Remove clauses with literal
         cnf = cls.remove_clauses_with_literal(cnf, literal)
         # Shorten clauses with negated literal
@@ -230,17 +230,15 @@ class Solver:
         return cnf
 
     @staticmethod
-    def remove_clauses_with_literal(cnf: CNFtype, literal: int):
+    def remove_clauses_with_literal(cnf: CNFtype, literal: int) -> CNFtype:
         """Remove clauses from the cnf with the given literal"""
         return [clause for clause in cnf if literal not in clause]
 
     @staticmethod
-    def shorten_clauses_with_literal(cnf: CNFtype, literal: int):
+    def shorten_clauses_with_literal(cnf: CNFtype, literal: int) -> CNFtype:
         """Shorten clauses from cnf with given literal"""
-        return [
-            [c for c in clause if c != literal] if literal in clause else clause
-            for clause in cnf
-        ]
+        # Remove literal if in clause, otherwise just keep the clause as is
+        return [clause - {literal} if literal in clause else clause for clause in cnf]
 
     @classmethod
     def simplify(cls, cnf: CNFtype) -> Tuple[CNFtype, Set[int]]:
@@ -342,15 +340,17 @@ class DPLL(Solver):
         return satisfied
 
     @classmethod
-    def get_available_heuristics(cls) -> List[str]:
+    def get_available_heuristics(cls, post=True) -> List[str]:
         # Look up which `get_literal_...` functions are available
         heuristics = [h.split("_")[-1] for h in dir(cls) if h.startswith("get_literal")]
         # To instantaneously triple the options offered a post action for every heuristic is possible
         # i.e. _neg makes sure the chosen literal is negated, _pos the opposite
-        heuristics_neg = [f"{h}_neg" for h in heuristics]
-        heuristics_pos = [f"{h}_pos" for h in heuristics]
+        if post:
+            heuristics_neg = [f"{h}_neg" for h in heuristics]
+            heuristics_pos = [f"{h}_pos" for h in heuristics]
 
-        heuristics = heuristics + heuristics_neg + heuristics_pos
+            heuristics = heuristics + heuristics_neg + heuristics_pos
+
         heuristics.sort()
 
         return heuristics

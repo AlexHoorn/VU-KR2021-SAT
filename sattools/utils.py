@@ -1,8 +1,8 @@
 from itertools import chain
 from os import mkdir, path
-from typing import Any, Iterable, List
+from typing import Any, Iterable, List, Set
 
-CNFtype = List[List[int]]
+CNFtype = List[Set[int]]
 
 
 def read_dimacs(filepath: str) -> CNFtype:
@@ -28,7 +28,7 @@ def read_dimacs(filepath: str) -> CNFtype:
             row = row.rstrip("0")  # Remove the trailing 0
             row = row.strip()  # Remove leading and trailing spaces
             clauses = row.split(" ")  # Split into statements
-            clauses_int = [int(i) for i in clauses]  # Convert to integers
+            clauses_int = {int(i) for i in clauses}  # Convert to integers
 
             clause_list.append(clauses_int)
 
@@ -41,12 +41,12 @@ def write_dimacs(iterable: Iterable[Any], filepath: str):
             f.write(f"{i} 0\n")
 
 
-def flatten_list(list_: List[List[Any]]) -> List[Any]:
+def flatten_list(list_: Iterable[Iterable[Any]]) -> List[Any]:
     flattened = list(chain.from_iterable(list_))
     return flattened
 
 
-def read_collections(filepath: str, size=9, write=False) -> CNFtype:
+def read_sudoku_collections(filepath: str, size=9, write=False) -> List[CNFtype]:
     """Read a collection of sudokus in *txt files.
 
     Args:
@@ -107,10 +107,18 @@ def read_collections(filepath: str, size=9, write=False) -> CNFtype:
                             elif vals[i * size + j] == "G":
                                 vals[i * size + j] = "16"
 
-                        sudoku.append([int((i+1)*289 + (j+1)*17 + int(vals[i*size + j]))])
+                        sudoku.append(
+                            {
+                                int(
+                                    (i + 1) * 289
+                                    + (j + 1) * 17
+                                    + int(vals[i * size + j])
+                                )
+                            }
+                        )
 
                     else:
-                        sudoku.append([int(f"{i+1}{j+1}{vals[i*size + j]}")])
+                        sudoku.append({int(f"{i+1}{j+1}{vals[i*size + j]}")})
 
         sudoku_collection.append(sudoku)
 

@@ -10,7 +10,7 @@ from pebble.common import ProcessExpired
 
 from sattools.solvers import DPLL
 from sattools.sudoku import Sudoku
-from sattools.utils import read_collections
+from sattools.utils import read_sudoku_collections
 
 
 def main(
@@ -30,17 +30,13 @@ def main(
             ids = f.read().splitlines()
 
     # Construct sudokus
-    sudokus_collection = read_collections(collection, size=grid_size)[:n_max]
+    sudokus_collection = read_sudoku_collections(collection, size=grid_size)[:n_max]
     sudokus = [Sudoku(sudoku, grid) for sudoku in sudokus_collection]
     # Make an iterator to construct DPLL solvers, zip with ids if available otherwise just enumerate
     sudokus_iter = zip(ids, sudokus) if ids_path else enumerate(sudokus)
     # Construct solvers
     solvers = [
-        DPLL(
-            sudoku.get_all_clauses(),
-            heuristic=heuristic,
-            identifier=identifier,
-        )
+        DPLL(sudoku.get_all_clauses(), heuristic=heuristic, identifier=identifier,)
         for identifier, sudoku in sudokus_iter
     ]
     # Run every multiple times
